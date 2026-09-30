@@ -1,9 +1,6 @@
 """
-Algoritmo 4 — SVM (escolha livre do grupo).
+SVM — algoritmo de escolha livre do grupo. Ver `reports/docs/svm.md`.
 
-Explicação do funcionamento em `reports/docs/svm.md`.
-
-Execução:
     python models/svm.py
 """
 
@@ -20,8 +17,8 @@ from ttt.config import RANDOM_STATE
 NOME = "SVM"
 MODELO = SVC(random_state=RANDOM_STATE)
 
-# O kernel entra na grade junto com C e gamma: assim a escolha do kernel também
-# é decidida pelo conjunto de validação, e não fixada à mão.
+# O kernel entra na grade junto com C e gamma, para ser escolhido pelo conjunto
+# de validação em vez de fixado à mão.
 PARAM_GRID = {
     "kernel": ["linear", "rbf", "poly"],
     "C": [0.1, 1, 10, 50, 100],

@@ -1,12 +1,5 @@
 """
-Protocolo experimental comum a todos os algoritmos.
-
-Antes cada script fazia a sua própria coisa: um usava GridSearchCV com `cv=5`,
-outro com `cv=3`, outro escolhia o hiperparâmetro em um laço manual sobre a
-validação. Isso viola o item 4 do enunciado, que pede os mesmos conjuntos e o
-conjunto de teste reservado para a avaliação final.
-
-Aqui o protocolo é único:
+Protocolo experimental comum aos cinco algoritmos:
 
   1. treino + validação entram no GridSearchCV via `PredefinedSplit`, de modo
      que o conjunto de validação físico seja o único fold de pontuação;
@@ -32,8 +25,8 @@ def treinar(nome, modelo, param_grid, abordagem):
     print(f"[INFO] Treino: {len(dados.y_treino)} | "
           f"Validação: {len(dados.y_val)} | Teste: {len(dados.y_teste)}")
 
-    # As chaves da grade ganham o prefixo do Pipeline aqui, para que cada script
-    # declare os parâmetros pelo nome real do classificador.
+    # O prefixo do Pipeline é aplicado aqui para que cada script declare a
+    # grade pelos nomes reais dos parâmetros do classificador.
     grid = {f"modelo__{k}": v for k, v in param_grid.items()}
 
     busca = GridSearchCV(
@@ -63,11 +56,10 @@ def treinar(nome, modelo, param_grid, abordagem):
 
 def main(nome, modelo, param_grid):
     """
-    Ponto de entrada dos scripts em `models/`: lê a linha de comando e roda as
-    abordagens pedidas.
+    Ponto de entrada dos scripts em `models/`.
 
-    Rodar as duas é o padrão, porque é assim que se responde à pergunta do
-    item 3 ("qual das abordagens é mais adequada").
+    Rodar as duas abordagens é o padrão: é assim que se responde qual delas é
+    mais adequada, como pede o item 3.
     """
     parser = argparse.ArgumentParser(description=f"Treina e avalia o algoritmo {nome}.")
     parser.add_argument(

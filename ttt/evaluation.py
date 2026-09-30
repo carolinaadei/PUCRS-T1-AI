@@ -1,13 +1,8 @@
 """
-Avaliação padronizada dos modelos.
+Métricas do item 5: acurácia, precision, recall e F-measure.
 
-O enunciado (item 5) pede acurácia, precision, recall e F-measure para todos os
-algoritmos e, ao final, uma comparação entre eles. Para que essa comparação
-signifique alguma coisa, todos são medidos da mesma forma, sobre o mesmo
-conjunto de teste.
-
-Cada execução registra uma linha em `reports/metrics/resultados.csv`, e
-`models/comparar.py` transforma esse arquivo na tabela e no gráfico finais.
+Cada execução registra uma linha em `reports/metrics/resultados.csv`, que
+`models/comparar.py` transforma na tabela e no gráfico finais.
 """
 
 import matplotlib
@@ -33,14 +28,12 @@ TODAS_AS_CLASSES = list(range(len(CLASS_NAMES)))
 
 def avaliar(nome, abordagem, y_teste, y_pred, acuracia_val, melhores_params):
     """
-    Calcula as métricas do enunciado, imprime o relatório, salva a matriz de
-    confusão e registra o resultado no CSV consolidado.
+    Mede o modelo no conjunto de teste, imprime o relatório, salva a matriz de
+    confusão e registra o resultado no CSV. Devolve as métricas em um dicionário.
 
-    As médias são `weighted` porque as classes não estão balanceadas: "Empate"
-    tem bem menos amostras que as demais, e uma média macro daria a essa classe
-    minoritária o mesmo peso das outras quatro.
-
-    Devolve um dicionário com as métricas.
+    As médias são `weighted` porque as classes estão desbalanceadas: "Empate"
+    tem bem menos amostras que as demais, e uma média macro daria a ela o mesmo
+    peso das outras quatro.
     """
     resultado = {
         "algoritmo": nome,
@@ -77,7 +70,7 @@ def avaliar(nome, abordagem, y_teste, y_pred, acuracia_val, melhores_params):
 
 
 def carregar_resultados():
-    """Lê o CSV consolidado; devolve um DataFrame vazio se nada foi executado."""
+    """Lê o CSV consolidado, ou um DataFrame vazio se nada foi executado ainda."""
     if not RESULTADOS_CSV.exists():
         return pd.DataFrame()
     return pd.read_csv(RESULTADOS_CSV)
@@ -106,10 +99,7 @@ def _salvar_matriz_confusao(nome, abordagem, y_teste, y_pred):
 
 
 def _registrar(resultado):
-    """
-    Acrescenta o resultado ao CSV, substituindo a linha anterior do mesmo par
-    (algoritmo, abordagem) para que reexecuções não acumulem lixo.
-    """
+    """Grava no CSV, substituindo a linha anterior do mesmo algoritmo e abordagem."""
     df = carregar_resultados()
     if not df.empty:
         df = df[~(

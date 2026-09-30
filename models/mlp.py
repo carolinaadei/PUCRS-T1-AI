@@ -1,12 +1,6 @@
 """
-Algoritmo 3 — Multi-Layer Perceptron (exigido pelo enunciado).
+Multi-Layer Perceptron — algoritmo exigido pelo enunciado.
 
-Nota sobre o alvo: ele permanece numérico durante todo o treinamento. O
-`early_stopping` interno do MLPClassifier é incompatível com rótulos em texto
-(tentaria aplicar np.isnan sobre strings). A tradução para nomes legíveis
-acontece só na avaliação, via `ttt.config.CLASS_MAP`.
-
-Execução:
     python models/mlp.py
 """
 
@@ -22,9 +16,9 @@ from ttt.config import RANDOM_STATE
 
 NOME = "MLP"
 
-# early_stopping separa internamente uma fatia do treino para interromper o
-# ajuste quando a perda para de melhorar — principal defesa contra overfitting
-# num dataset pequeno como este.
+# early_stopping reserva parte do treino para interromper o ajuste quando a
+# perda para de melhorar: a principal defesa contra overfitting num dataset
+# pequeno como este.
 MODELO = MLPClassifier(
     max_iter=2000,
     early_stopping=True,

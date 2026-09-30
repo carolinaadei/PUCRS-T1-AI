@@ -1,10 +1,9 @@
 """
-Item 5 do enunciado — comparação entre os algoritmos e escolha do melhor.
+Comparação entre os algoritmos e escolha do melhor (item 5 do enunciado).
 
-Executa os cinco algoritmos nas duas abordagens de pré-processamento e monta a
-tabela e o gráfico comparativos a partir de `reports/metrics/resultados.csv`.
+Roda os cinco algoritmos nas duas abordagens e monta a tabela e o gráfico
+comparativos a partir de `reports/metrics/resultados.csv`.
 
-Execução:
     python models/comparar.py                  # roda tudo e gera a comparação
     python models/comparar.py --somente-tabela # só relê o CSV já existente
 """
@@ -28,7 +27,7 @@ from ttt.experiment import treinar
 
 ALGORITMOS = [knn, arvore_decisao, mlp, svm]
 
-# XGBoost é dependência opcional: sua ausência não deve derrubar a comparação
+# XGBoost é dependência opcional: sua ausência não derruba a comparação
 try:
     from models import xgboost_clf
     ALGORITMOS.append(xgboost_clf)
@@ -75,7 +74,7 @@ def montar_tabela():
 
 
 def _comparar_abordagens(df):
-    """Responde à pergunta do item 3: qual abordagem é mais adequada."""
+    """Qual abordagem de pré-processamento foi mais adequada, na média (item 3)."""
     if df["abordagem"].nunique() < 2:
         return
 
@@ -94,7 +93,7 @@ def _salvar_grafico(df):
 
     fig, ax = plt.subplots(figsize=(11, 5.5))
     for i, abordagem in enumerate(abordagens):
-        # reindex mantém as barras alinhadas mesmo se faltar um algoritmo
+        # reindex alinha as barras mesmo quando falta um algoritmo
         valores = (df[df["abordagem"] == abordagem]
                    .set_index("algoritmo")["acuracia_teste"]
                    .reindex(algoritmos))

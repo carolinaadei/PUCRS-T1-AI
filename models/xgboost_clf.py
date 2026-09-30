@@ -1,9 +1,6 @@
 """
-Algoritmo 5 — XGBoost (escolha livre do grupo).
+XGBoost — algoritmo de escolha livre do grupo. Ver `reports/docs/xgboost.md`.
 
-Explicação do funcionamento em `reports/docs/xgboost.md`.
-
-Execução:
     python models/xgboost_clf.py
 """
 
@@ -19,9 +16,8 @@ from ttt.config import RANDOM_STATE
 
 NOME = "XGBoost"
 
-# O problema tem 5 classes. A versão anterior usava objective='binary:logistic',
-# que é para 2 classes. `num_class` não é informado de propósito: o wrapper
-# sklearn o infere dos rótulos, e defini-lo à mão conflita com essa inferência.
+# `num_class` é omitido de propósito: o wrapper sklearn o infere dos rótulos, e
+# defini-lo à mão conflita com essa inferência.
 MODELO = XGBClassifier(
     objective="multi:softprob",
     eval_metric="mlogloss",

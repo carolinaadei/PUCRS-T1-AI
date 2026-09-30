@@ -298,11 +298,11 @@
   </div>
 
   <script>
-    // Codificação das casas, idêntica à usada no treinamento.
+    // Codificação das casas, idêntica à do treinamento (ttt/config.py)
     const VAZIO = 0, JOGADOR_O = 1, JOGADOR_X = 2;
 
-    // Ids das classes que encerram a partida (ver ttt/config.py)
-    const EMPATE = 0, O_VENCE = 1, X_VENCE = 4;
+    // Ids das classes de vitória; o empate é o caso restante de fim de jogo
+    const O_VENCE = 1, X_VENCE = 4;
 
     const LINHAS = [
       [0,1,2],[3,4,5],[6,7,8],
@@ -323,8 +323,8 @@
 
     // ── Renderização ────────────────────────────────────────────────────
 
-    // A linha vencedora é só destaque visual, por isso é calculada aqui.
-    // A classificação do estado vem do servidor, que usa ttt/game_rules.py.
+    // Calculada aqui por ser puro destaque visual. A classificação do estado
+    // vem do servidor, que usa ttt/game_rules.py.
     function linhaVencedora() {
       for (const linha of LINHAS) {
         const [a, b, c] = linha;
@@ -434,12 +434,11 @@
 
     // ── Fluxo de jogo ───────────────────────────────────────────────────
 
-    // Chamado após qualquer jogada (humano ou computador).
+    // Chamado após qualquer jogada, do humano ou do computador.
     //
-    // Regras do enunciado:
-    // • encerra o jogo quando a IA não detectar o fim de jogo (mas o jogo acabou);
-    // • continua o jogo quando a IA detectar fim incorretamente (mas o jogo segue).
-    // O fluxo é controlado pelo estado REAL, e o erro da IA é registrado.
+    // Como pede o enunciado, quem controla o fluxo é o estado REAL, não a
+    // predição: o jogo encerra quando a IA não detecta o fim, e continua
+    // quando ela detecta um fim que não houve. O erro fica registrado.
     async function aposJogada() {
       desenharTabuleiro();
       document.getElementById('vez').textContent = 'IA classificando...';

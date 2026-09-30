@@ -1,7 +1,6 @@
 """
-Algoritmo 1 — k-Nearest Neighbors (exigido pelo enunciado).
+k-Nearest Neighbors — algoritmo exigido pelo enunciado.
 
-Execução:
     python models/knn.py                      # roda as duas abordagens
     python models/knn.py --abordagem bruta
 """
@@ -18,7 +17,7 @@ from ttt import experiment
 NOME = "k-NN"
 MODELO = KNeighborsClassifier()
 
-# k ímpar evita empates na votação entre as 5 classes.
+# Só valores ímpares de k, para evitar empates na votação entre as 5 classes.
 PARAM_GRID = {
     "n_neighbors": [1, 3, 5, 7, 9, 11, 15, 19],
     "metric": ["euclidean", "manhattan"],

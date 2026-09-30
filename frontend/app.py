@@ -1,16 +1,13 @@
 """
-Item 6 do enunciado — front end mínimo para interagir com o classificador.
+Front end para interagir com o classificador (item 6 do enunciado).
 
-Um humano joga de X contra um computador que joga de O aleatoriamente. A cada
-jogada o tabuleiro é enviado ao classificador, que informa o estado do jogo; a
-tela compara essa predição com o estado real e contabiliza a acurácia da IA.
+O humano joga de X contra um computador que joga de O aleatoriamente. A cada
+jogada o tabuleiro é enviado ao classificador, e a tela compara a predição com
+o estado real para contabilizar a acurácia da IA.
 
-O servidor carrega o melhor modelo já treinado em `artifacts/`, em vez de
-treinar na inicialização. Treinar a cada boot deixava a subida lenta e fazia o
-front end usar um modelo diferente do avaliado no relatório.
+O modelo é carregado de `artifacts/`, então é preciso treinar antes:
 
-Execução:
-    python models/comparar.py     # treina e escolhe o melhor (uma vez)
+    python models/comparar.py
     python frontend/app.py
 """
 
@@ -32,11 +29,10 @@ app = Flask(__name__)
 
 def carregar_melhor_modelo():
     """
-    Carrega o pipeline (pré-processamento + classificador) do algoritmo com
-    melhor acurácia de teste registrada.
+    Carrega o pipeline do algoritmo com melhor acurácia de teste registrada.
 
-    Se nada foi registrado ainda, usa qualquer artefato disponível, para que o
-    front end suba mesmo antes de a comparação completa ter sido rodada.
+    Sem resultados registrados, usa qualquer artefato disponível, para o front
+    end subir mesmo antes de a comparação completa ter sido rodada.
     """
     resultados = evaluation.carregar_resultados()
 
@@ -70,8 +66,7 @@ def classify():
     Predição da IA para o tabuleiro recebido, junto do estado real.
 
     O estado real vai na resposta para que o front end não precise ter a sua
-    própria cópia das regras nem dos rótulos das classes — era essa duplicata
-    que estava divergindo e invertendo "X vence" com "O vence".
+    própria cópia das regras nem dos rótulos das classes.
     """
     board = _ler_tabuleiro(request.get_json())
 

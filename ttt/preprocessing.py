@@ -1,15 +1,11 @@
 """
-As duas abordagens de pré-processamento exigidas pelo enunciado (item 3).
+As duas abordagens de pré-processamento do item 3 do enunciado.
 
-  bruta    — a entrada do modelo é apenas o tabuleiro atual, com as casas
-             convertidas em valores numéricos (0 = vazio, 1 = O, 2 = X).
+  bruta    — entrada do modelo é o tabuleiro atual em valores numéricos.
+  derivada — entrada do modelo são features extraídas do tabuleiro.
 
-  derivada — a entrada do modelo é um conjunto de features extraídas do
-             tabuleiro: quantidade de X, quantidade de O, posições ocupadas,
-             linhas com 2 X, linhas com 2 O, casas vazias e jogador da vez.
-
-Manter as duas aqui garante que a comparação entre elas seja honesta: a única
-coisa que muda é a representação da entrada.
+As duas ficam aqui para que a comparação seja honesta: a única coisa que muda
+entre elas é a representação da entrada.
 """
 
 import numpy as np
@@ -25,8 +21,8 @@ ABORDAGENS = {
     "derivada": "Features extraídas do tabuleiro, padronizadas (15 colunas)",
 }
 
-# Nomes na ordem em que `_features_do_tabuleiro` os produz. Úteis para
-# inspecionar importância de features na árvore de decisão e no XGBoost.
+# Mesma ordem em que `_features_do_tabuleiro` as produz. Serve para inspecionar
+# importância de features na árvore de decisão e no XGBoost.
 NOMES_FEATURES_DERIVADAS = (
     ["qtd_x", "qtd_o", "casas_vazias", "linhas_2x", "linhas_2o", "jogador_da_vez"]
     + [f"ocupada_{i}" for i in range(9)]
@@ -35,11 +31,11 @@ NOMES_FEATURES_DERIVADAS = (
 
 def _features_do_tabuleiro(board):
     """
-    Transforma um tabuleiro em features de mais alto nível.
+    Extrai as features do item 3 de um tabuleiro.
 
-    "Posições ocupadas" vira uma máscara binária de 9 casas, e não uma
-    contagem: a contagem já é dada por `casas_vazias`, então é a máscara que
-    acrescenta informação sobre a geometria do tabuleiro.
+    "Posições ocupadas" é uma máscara binária de 9 casas, e não uma contagem:
+    a contagem já vem de `casas_vazias`, então é a máscara que acrescenta
+    informação sobre a geometria do tabuleiro.
     """
     return [
         board.count(JOGADOR_X),
@@ -62,19 +58,17 @@ def criar_pipeline(abordagem, modelo):
     Monta o pré-processamento da abordagem escolhida com o modelo no final.
 
     O modelo entra dentro do Pipeline para que o pré-processamento seja
-    reajustado a cada fold do GridSearchCV e nunca enxergue os dados de
-    validação antes da hora.
+    reajustado a cada fold do GridSearchCV e não enxergue a validação antes da
+    hora.
     """
     if abordagem == "bruta":
-        # One-hot nas 9 casas: cada posição vira 3 colunas (vazio/O/X). Evita
-        # que o modelo leia os códigos 0/1/2 como uma escala ordenada — "X" não
-        # é o dobro de "O".
+        # Cada casa vira 3 colunas (vazio/O/X), para o modelo não ler os
+        # códigos 0/1/2 como escala ordenada: "X" não é o dobro de "O".
         etapas = [("onehot", OneHotEncoder(sparse_output=False, handle_unknown="ignore"))]
 
     elif abordagem == "derivada":
-        # As features têm escalas diferentes entre si (contagens de 0 a 9 ao
-        # lado de flags 0/1), o que importa para algoritmos sensíveis a
-        # distância como k-NN, SVM e MLP.
+        # Contagens de 0 a 9 convivem com flags 0/1, e essa diferença de escala
+        # distorce k-NN, SVM e MLP, que dependem de distância.
         etapas = [
             ("features", FunctionTransformer(extrair_features)),
             ("escala", StandardScaler()),

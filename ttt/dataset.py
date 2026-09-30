@@ -1,9 +1,7 @@
 """
-Carga dos conjuntos de treino, validação e teste.
+Carga da divisão treino / validação / teste (item 4 do enunciado).
 
-Os três arquivos são a divisão física exigida pelo enunciado (item 4) e são
-gerados por `notebooks/01_construcao_dataset.ipynb`. Todos os algoritmos
-carregam os dados por aqui, para que os experimentos sejam comparáveis.
+Os três arquivos são gerados por `notebooks/01_construcao_dataset.ipynb`.
 """
 
 from collections import namedtuple
@@ -17,7 +15,7 @@ Dados = namedtuple("Dados", "X_treino y_treino X_val y_val X_teste y_teste")
 
 
 def carregar():
-    """Lê os três CSVs processados e separa features do alvo."""
+    """Lê os três CSVs e separa as features do alvo."""
 
     def ler(caminho):
         df = pd.read_csv(caminho)
@@ -32,12 +30,11 @@ def carregar():
 
 def juntar_treino_validacao(dados):
     """
-    Concatena treino + validação e monta o vetor `test_fold` do
-    `PredefinedSplit`: -1 marca as linhas de treino (nunca usadas para pontuar)
-    e 0 marca as de validação.
+    Junta treino e validação para o GridSearchCV, junto do `test_fold` do
+    `PredefinedSplit`: -1 nas linhas de treino, 0 nas de validação.
 
-    É assim que o GridSearchCV usa o conjunto de validação físico como único
-    fold, em vez de reparticionar o treino aleatoriamente.
+    Assim a busca pontua no conjunto de validação físico, em vez de
+    reparticionar o treino aleatoriamente.
     """
     X = pd.concat([dados.X_treino, dados.X_val], ignore_index=True)
     y = np.concatenate([dados.y_treino, dados.y_val])

@@ -1,7 +1,6 @@
 """
-Algoritmo 2 — Árvore de Decisão (exigido pelo enunciado).
+Árvore de Decisão — algoritmo exigido pelo enunciado.
 
-Execução:
     python models/arvore_decisao.py
 """
 
@@ -18,6 +17,7 @@ from ttt.config import RANDOM_STATE
 NOME = "Arvore de Decisao"
 MODELO = DecisionTreeClassifier(random_state=RANDOM_STATE)
 
+# max_depth=None deixa a árvore crescer até o fim, como referência de overfitting.
 PARAM_GRID = {
     "max_depth": [3, 5, 7, 10, None],
     "criterion": ["gini", "entropy"],
