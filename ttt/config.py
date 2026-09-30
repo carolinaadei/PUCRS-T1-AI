@@ -1,50 +1,38 @@
 """
 Constantes e caminhos do projeto.
 
-Este é o único lugar onde o mapeamento de classes é declarado. Antes da
-reorganização cada script tinha a sua própria cópia e elas divergiam entre si
-(o front end trocava "O vence" com "X vence"), o que corrompia a contabilização
-de acertos da IA durante a interação.
+Este é o único lugar onde o mapeamento de classes é declarado. Antes cada
+script tinha a sua própria cópia e elas divergiam entre si (o front end trocava
+"O vence" com "X vence"), o que corrompia a contagem de acertos da IA.
 
-O mapeamento abaixo foi validado contra os CSVs: ele corresponde à ordem
-alfabética produzida pelo LabelEncoder em `notebooks/01_construcao_dataset.ipynb`.
+O mapeamento foi validado contra os CSVs: ele corresponde à ordem alfabética
+produzida pelo LabelEncoder em `notebooks/01_construcao_dataset.ipynb`.
 """
 
 from pathlib import Path
 
-# --------------------------------------------------------------------------
-# Caminhos — sempre derivados da raiz do repositório, nunca do diretório atual
-# --------------------------------------------------------------------------
-
+# Caminhos sempre derivados da raiz do repositório, nunca do diretório atual
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-DATA_DIR = ROOT_DIR / "data"
-RAW_DIR = DATA_DIR / "raw"
-PROCESSED_DIR = DATA_DIR / "processed"
+RAW_UCI_FILE = ROOT_DIR / "data" / "raw" / "tic-tac-toe.data"
+TREINO_CSV = ROOT_DIR / "data" / "processed" / "treino.csv"
+VALIDACAO_CSV = ROOT_DIR / "data" / "processed" / "validacao.csv"
+TESTE_CSV = ROOT_DIR / "data" / "processed" / "teste.csv"
 
-REPORTS_DIR = ROOT_DIR / "reports"
-FIGURES_DIR = REPORTS_DIR / "figures"
-METRICS_DIR = REPORTS_DIR / "metrics"
+FIGURES_DIR = ROOT_DIR / "reports" / "figures"
+METRICS_DIR = ROOT_DIR / "reports" / "metrics"
 ARTIFACTS_DIR = ROOT_DIR / "artifacts"
 
-RAW_UCI_FILE = RAW_DIR / "tic-tac-toe.data"
-TREINO_CSV = PROCESSED_DIR / "treino.csv"
-VALIDACAO_CSV = PROCESSED_DIR / "validacao.csv"
-TESTE_CSV = PROCESSED_DIR / "teste.csv"
-
-# --------------------------------------------------------------------------
-# Esquema dos dados
-# --------------------------------------------------------------------------
+for pasta in (FIGURES_DIR, METRICS_DIR, ARTIFACTS_DIR):
+    pasta.mkdir(parents=True, exist_ok=True)
 
 # Posições do tabuleiro 3x3: top/middle/bottom x left/middle/right
 FEATURE_COLS = ["tl", "tm", "tr", "ml", "mm", "mr", "bl", "bm", "br"]
 TARGET_COL = "classe_id"
 
-# Codificação das casas do tabuleiro (usada nos CSVs processados)
-ENCODE_CASA = {"b": 0, "o": 1, "x": 2}
+# Codificação das casas, usada nos CSVs e no front end
 VAZIO, JOGADOR_O, JOGADOR_X = 0, 1, 2
 
-# Rótulo legível de cada classe. Ordem = LabelEncoder (alfabética).
 CLASS_MAP = {
     0: "Empate",
     1: "O vence",
@@ -56,14 +44,4 @@ CLASS_MAP = {
 # Lista ordenada por id — formato esperado por `target_names` do sklearn
 CLASS_NAMES = [CLASS_MAP[i] for i in sorted(CLASS_MAP)]
 
-# --------------------------------------------------------------------------
-# Reprodutibilidade
-# --------------------------------------------------------------------------
-
 RANDOM_STATE = 42
-
-
-def garantir_diretorios() -> None:
-    """Cria os diretórios de saída, caso ainda não existam."""
-    for d in (FIGURES_DIR, METRICS_DIR, ARTIFACTS_DIR):
-        d.mkdir(parents=True, exist_ok=True)

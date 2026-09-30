@@ -17,10 +17,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sklearn.neural_network import MLPClassifier
 
+from ttt import experiment
 from ttt.config import RANDOM_STATE
-from ttt.experiment import cli, executar_cli
 
 NOME = "MLP"
+
+# early_stopping separa internamente uma fatia do treino para interromper o
+# ajuste quando a perda para de melhorar — principal defesa contra overfitting
+# num dataset pequeno como este.
+MODELO = MLPClassifier(
+    max_iter=2000,
+    early_stopping=True,
+    n_iter_no_change=20,
+    random_state=RANDOM_STATE,
+)
 
 PARAM_GRID = {
     "hidden_layer_sizes": [(10,), (50,), (10, 10), (50, 25)],
@@ -28,18 +38,5 @@ PARAM_GRID = {
     "learning_rate_init": [0.001, 0.01],
 }
 
-
-def criar_modelo() -> MLPClassifier:
-    # early_stopping separa internamente uma fatia do treino para interromper o
-    # ajuste quando a perda para de melhorar — principal defesa contra
-    # overfitting num dataset pequeno como este.
-    return MLPClassifier(
-        max_iter=2000,
-        early_stopping=True,
-        n_iter_no_change=20,
-        random_state=RANDOM_STATE,
-    )
-
-
 if __name__ == "__main__":
-    executar_cli(NOME, criar_modelo, PARAM_GRID, cli(__doc__))
+    experiment.main(NOME, MODELO, PARAM_GRID)

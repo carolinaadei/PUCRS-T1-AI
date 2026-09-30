@@ -78,9 +78,9 @@ resultados saem em `reports/` e no front end.
 └── artifacts/            Modelos treinados (.joblib), regeráveis
 ```
 
-Cada script em `models/` declara apenas três coisas — `NOME`, `PARAM_GRID` e
-`criar_modelo()`. Todo o resto (carga, pré-processamento, busca de hiperparâmetros,
-avaliação e registro) vem de `ttt/`. É isso que garante que os cinco algoritmos sejam
+Cada script em `models/` declara apenas três coisas — `NOME`, `MODELO` e `PARAM_GRID`.
+Todo o resto (carga, pré-processamento, busca de hiperparâmetros, avaliação e registro)
+vem de `ttt/`. É isso que garante que os cinco algoritmos sejam
 medidos exatamente da mesma forma e que a comparação do item 5 signifique alguma coisa.
 
 ---

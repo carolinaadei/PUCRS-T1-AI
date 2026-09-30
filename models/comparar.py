@@ -5,12 +5,11 @@ Executa os cinco algoritmos nas duas abordagens de pré-processamento e monta a
 tabela e o gráfico comparativos a partir de `reports/metrics/resultados.csv`.
 
 Execução:
-    python models/comparar.py              # roda tudo e gera a comparação
-    python models/comparar.py --somente-tabela   # só relê o CSV já existente
+    python models/comparar.py                  # roda tudo e gera a comparação
+    python models/comparar.py --somente-tabela # só relê o CSV já existente
 """
 
 import argparse
-import importlib
 import sys
 from pathlib import Path
 
@@ -22,40 +21,29 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from models import arvore_decisao, knn, mlp, svm
 from ttt import evaluation, preprocessing
-from ttt.config import FIGURES_DIR, METRICS_DIR, garantir_diretorios
-from ttt.experiment import executar
+from ttt.config import FIGURES_DIR, METRICS_DIR
+from ttt.experiment import treinar
 
-# Módulo de cada algoritmo, na ordem em que aparecem no relatório
-ALGORITMOS = [
-    "models.knn",
-    "models.arvore_decisao",
-    "models.mlp",
-    "models.svm",
-    "models.xgboost_clf",
-]
+ALGORITMOS = [knn, arvore_decisao, mlp, svm]
+
+# XGBoost é dependência opcional: sua ausência não deve derrubar a comparação
+try:
+    from models import xgboost_clf
+    ALGORITMOS.append(xgboost_clf)
+except ImportError:
+    print("[AVISO] xgboost não instalado — algoritmo ignorado na comparação.")
 
 
-def rodar_todos() -> None:
+def rodar_todos():
     """Executa cada algoritmo em cada abordagem, registrando os resultados."""
-    for caminho in ALGORITMOS:
-        try:
-            modulo = importlib.import_module(caminho)
-        except ImportError as erro:
-            # XGBoost é dependência opcional; não deve derrubar a comparação
-            print(f"[AVISO] {caminho} ignorado — dependência ausente ({erro.name}).")
-            continue
-
+    for algoritmo in ALGORITMOS:
         for abordagem in preprocessing.ABORDAGENS:
-            executar(
-                nome=modulo.NOME,
-                modelo=modulo.criar_modelo(),
-                param_grid=modulo.PARAM_GRID,
-                abordagem=abordagem,
-            )
+            treinar(algoritmo.NOME, algoritmo.MODELO, algoritmo.PARAM_GRID, abordagem)
 
 
-def montar_tabela() -> None:
+def montar_tabela():
     """Imprime a tabela comparativa e salva o gráfico de barras."""
     df = evaluation.carregar_resultados()
     if df.empty:
@@ -67,10 +55,9 @@ def montar_tabela() -> None:
     print("\n" + "=" * 78)
     print("COMPARAÇÃO DOS ALGORITMOS — conjunto de teste".center(78))
     print("=" * 78)
-    print(df[[
-        "algoritmo", "abordagem", "acuracia_val", "acuracia_teste",
-        "precision", "recall", "f1",
-    ]].to_string(index=False, float_format=lambda v: f"{v:.4f}"))
+    print(df.drop(columns="melhores_params").to_string(
+        index=False, float_format=lambda v: f"{v:.4f}"
+    ))
 
     melhor = df.iloc[0]
     print("\n" + "-" * 78)
@@ -83,12 +70,11 @@ def montar_tabela() -> None:
     _comparar_abordagens(df)
     _salvar_grafico(df)
 
-    destino = METRICS_DIR / "comparacao_final.csv"
-    df.to_csv(destino, index=False)
-    print(f"[CSV] {destino.relative_to(METRICS_DIR.parent.parent)}")
+    df.to_csv(METRICS_DIR / "comparacao_final.csv", index=False)
+    print("[CSV] reports/metrics/comparacao_final.csv")
 
 
-def _comparar_abordagens(df) -> None:
+def _comparar_abordagens(df):
     """Responde à pergunta do item 3: qual abordagem é mais adequada."""
     if df["abordagem"].nunique() < 2:
         return
@@ -96,13 +82,11 @@ def _comparar_abordagens(df) -> None:
     medias = df.groupby("abordagem")["acuracia_teste"].mean().sort_values(ascending=False)
     print("\nAcurácia média por abordagem de pré-processamento:")
     for abordagem, media in medias.items():
-        print(f"  {abordagem:<10} {media:.4f}  ({preprocessing.obter(abordagem).descricao})")
+        print(f"  {abordagem:<10} {media:.4f}  ({preprocessing.ABORDAGENS[abordagem]})")
     print(f"  → Abordagem mais adequada no geral: '{medias.index[0]}'")
 
 
-def _salvar_grafico(df) -> None:
-    garantir_diretorios()
-
+def _salvar_grafico(df):
     abordagens = sorted(df["abordagem"].unique())
     algoritmos = list(dict.fromkeys(df["algoritmo"]))
     x = np.arange(len(algoritmos))
@@ -110,15 +94,16 @@ def _salvar_grafico(df) -> None:
 
     fig, ax = plt.subplots(figsize=(11, 5.5))
     for i, abordagem in enumerate(abordagens):
-        sub = df[df["abordagem"] == abordagem].set_index("algoritmo")
-        # reindex mantém a ordem das barras alinhada mesmo se faltar um algoritmo
-        valores = sub["acuracia_teste"].reindex(algoritmos)
-        pos = x + (i - (len(abordagens) - 1) / 2) * largura
-        barras = ax.bar(pos, valores.fillna(0), largura, label=abordagem)
-        for barra, valor in zip(barras, valores):
+        # reindex mantém as barras alinhadas mesmo se faltar um algoritmo
+        valores = (df[df["abordagem"] == abordagem]
+                   .set_index("algoritmo")["acuracia_teste"]
+                   .reindex(algoritmos))
+        posicoes = x + (i - (len(abordagens) - 1) / 2) * largura
+
+        ax.bar(posicoes, valores.fillna(0), largura, label=abordagem)
+        for pos, valor in zip(posicoes, valores):
             if not np.isnan(valor):
-                ax.text(barra.get_x() + barra.get_width() / 2, valor + 0.015,
-                        f"{valor:.3f}", ha="center", fontsize=8)
+                ax.text(pos, valor + 0.015, f"{valor:.3f}", ha="center", fontsize=8)
 
     ax.set_xticks(x)
     ax.set_xticklabels(algoritmos, rotation=12, ha="right")
@@ -129,14 +114,13 @@ def _salvar_grafico(df) -> None:
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     fig.tight_layout()
 
-    destino = FIGURES_DIR / "comparacao_algoritmos.png"
-    fig.savefig(destino, dpi=140)
+    fig.savefig(FIGURES_DIR / "comparacao_algoritmos.png", dpi=140)
     plt.close(fig)
-    print(f"[FIG] {destino.relative_to(FIGURES_DIR.parent.parent)}")
+    print("[FIG] reports/figures/comparacao_algoritmos.png")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Compara os algoritmos do trabalho.")
     parser.add_argument(
         "--somente-tabela",
         action="store_true",

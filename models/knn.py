@@ -13,9 +13,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sklearn.neighbors import KNeighborsClassifier
 
-from ttt.experiment import cli, executar_cli
+from ttt import experiment
 
 NOME = "k-NN"
+MODELO = KNeighborsClassifier()
 
 # k ímpar evita empates na votação entre as 5 classes.
 PARAM_GRID = {
@@ -24,10 +25,5 @@ PARAM_GRID = {
     "weights": ["uniform", "distance"],
 }
 
-
-def criar_modelo() -> KNeighborsClassifier:
-    return KNeighborsClassifier()
-
-
 if __name__ == "__main__":
-    executar_cli(NOME, criar_modelo, PARAM_GRID, cli(__doc__))
+    experiment.main(NOME, MODELO, PARAM_GRID)

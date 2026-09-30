@@ -14,10 +14,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from xgboost import XGBClassifier
 
+from ttt import experiment
 from ttt.config import RANDOM_STATE
-from ttt.experiment import cli, executar_cli
 
 NOME = "XGBoost"
+
+# O problema tem 5 classes. A versão anterior usava objective='binary:logistic',
+# que é para 2 classes. `num_class` não é informado de propósito: o wrapper
+# sklearn o infere dos rótulos, e defini-lo à mão conflita com essa inferência.
+MODELO = XGBClassifier(
+    objective="multi:softprob",
+    eval_metric="mlogloss",
+    random_state=RANDOM_STATE,
+    n_jobs=1,  # o paralelismo fica por conta do GridSearchCV
+)
 
 PARAM_GRID = {
     "learning_rate": [0.05, 0.1, 0.2],
@@ -26,21 +36,5 @@ PARAM_GRID = {
     "gamma": [0, 0.1],
 }
 
-
-def criar_modelo() -> XGBClassifier:
-    # O problema tem 5 classes. A versão anterior deste script usava
-    # objective='binary:logistic', que é para 2 classes — os resultados
-    # reportados com aquela configuração não valem.
-    # `num_class` não é passado de propósito: o wrapper sklearn do XGBoost o
-    # infere dos rótulos, e informá-lo à mão entra em conflito com essa
-    # inferência.
-    return XGBClassifier(
-        objective="multi:softprob",
-        eval_metric="mlogloss",
-        random_state=RANDOM_STATE,
-        n_jobs=1,  # o paralelismo fica por conta do GridSearchCV
-    )
-
-
 if __name__ == "__main__":
-    executar_cli(NOME, criar_modelo, PARAM_GRID, cli(__doc__))
+    experiment.main(NOME, MODELO, PARAM_GRID)

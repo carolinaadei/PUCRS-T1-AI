@@ -12,10 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sklearn.tree import DecisionTreeClassifier
 
+from ttt import experiment
 from ttt.config import RANDOM_STATE
-from ttt.experiment import cli, executar_cli
 
 NOME = "Arvore de Decisao"
+MODELO = DecisionTreeClassifier(random_state=RANDOM_STATE)
 
 PARAM_GRID = {
     "max_depth": [3, 5, 7, 10, None],
@@ -23,10 +24,5 @@ PARAM_GRID = {
     "min_samples_leaf": [1, 3, 5],
 }
 
-
-def criar_modelo() -> DecisionTreeClassifier:
-    return DecisionTreeClassifier(random_state=RANDOM_STATE)
-
-
 if __name__ == "__main__":
-    executar_cli(NOME, criar_modelo, PARAM_GRID, cli(__doc__))
+    experiment.main(NOME, MODELO, PARAM_GRID)

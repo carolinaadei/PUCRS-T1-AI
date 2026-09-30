@@ -331,7 +331,7 @@ O script deixou de carregar dados, pré-processar e avaliar por conta própria: 
 |---|---|
 | `NOME` | Rótulo do algoritmo nos relatórios e nomes de arquivo |
 | `PARAM_GRID` | Grade de hiperparâmetros a explorar |
-| `criar_modelo()` | Instancia o `MLPClassifier` com `early_stopping` |
+| `MODELO` | O `MLPClassifier` com `early_stopping` |
 
 O restante vem do pacote compartilhado:
 

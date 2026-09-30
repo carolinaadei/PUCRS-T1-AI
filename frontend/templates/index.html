@@ -2,269 +2,295 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Jogo da Velha — IA Classificadora</title>
   <style>
+    :root {
+      --fundo:        #fbfbfd;
+      --superficie:   #ffffff;
+      --borda:        #e6e6ec;
+      --texto:        #1c1c22;
+      --texto-suave:  #71717f;
+
+      --x:      #4f46e5;   /* indigo  — jogador humano */
+      --o:      #e07a2f;   /* âmbar   — computador */
+      --acerto: #16a34a;
+      --erro:   #dc2626;
+
+      --raio: 14px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f0f2f5;
+      font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
       min-height: 100vh;
+      padding: 40px 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
     }
+
+    /* ── Cabeçalho ── */
+    header { text-align: center; margin-bottom: 36px; }
 
     h1 {
-      font-size: 22px;
-      color: #1a1a2e;
-      margin-bottom: 4px;
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
 
-    .subtitle {
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 24px;
+    .subtitulo {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--texto-suave);
     }
 
-    .container {
-      display: flex;
-      gap: 28px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      justify-content: center;
+    .modelo {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 12px;
+      border: 1px solid var(--borda);
+      border-radius: 999px;
+      background: var(--superficie);
+      font-size: 12px;
+      color: var(--texto-suave);
+    }
+    .modelo strong { color: var(--texto); font-weight: 600; }
+
+    /* ── Layout ── */
+    .conteudo {
+      display: grid;
+      grid-template-columns: auto 300px;
+      gap: 40px;
+      align-items: start;
+    }
+
+    @media (max-width: 720px) {
+      .conteudo { grid-template-columns: 1fr; gap: 28px; justify-items: center; }
     }
 
     /* ── Tabuleiro ── */
-    .board-section { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-
-    .board {
+    .tabuleiro {
       display: grid;
-      grid-template-columns: repeat(3, 110px);
-      grid-template-rows: repeat(3, 110px);
-      gap: 6px;
+      grid-template-columns: repeat(3, 84px);
+      grid-template-rows: repeat(3, 84px);
+      gap: 8px;
     }
 
-    .cell {
-      width: 110px; height: 110px;
-      background: #fff;
-      border: 2px solid #ccd;
-      border-radius: 8px;
-      font-size: 52px;
-      font-weight: bold;
-      cursor: pointer;
+    .casa {
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.15s;
-      user-select: none;
-    }
-
-    .cell:hover.clickable { background: #eef2ff; }
-    .cell.x { color: #e74c3c; }
-    .cell.o { color: #2980b9; }
-    .cell.ai-last { background: #d6eaff; border-color: #2980b9; }
-    .cell.winning { background: #d4edda; border-color: #27ae60; }
-    .cell.winning.x { color: #c0392b; }
-    .cell.winning.o { color: #1a5276; }
-
-    .turn-label {
-      font-size: 16px;
+      background: var(--superficie);
+      border: 1px solid var(--borda);
+      border-radius: var(--raio);
+      font-size: 34px;
       font-weight: 600;
-      color: #333;
-      padding: 8px 20px;
-      background: #fff;
-      border-radius: 20px;
-      border: 1px solid #dde;
+      transition: border-color .15s, transform .15s, background .15s;
     }
 
-    #game-result {
-      font-size: 18px;
-      font-weight: bold;
-      padding: 10px 24px;
-      border-radius: 8px;
-      display: none;
-      text-align: center;
-    }
-    #game-result.win  { background: #d4edda; color: #155724; }
-    #game-result.lose { background: #f8d7da; color: #721c24; }
-    #game-result.draw { background: #fff3cd; color: #856404; }
-    #game-result.ai-error { background: #fff3cd; color: #856404; }
+    .casa.x { color: var(--x); }
+    .casa.o { color: var(--o); }
 
-    button.restart, button.next-move {
-      padding: 10px 28px;
-      font-size: 15px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
+    .casa.jogavel { cursor: pointer; }
+    .casa.jogavel:hover {
+      border-color: var(--x);
+      background: #f5f4ff;
+      transform: translateY(-2px);
     }
-    button.restart { background: #2980b9; color: #fff; }
-    button.restart:hover { background: #1a6fa8; }
-    button.next-move { background: #27ae60; color: #fff; }
-    button.next-move:hover { background: #1e8449; }
 
-    /* ── Painel lateral ── */
-    .panel {
+    /* pop-in da marca recém-colocada */
+    .casa.marcada { animation: surgir .18s ease-out; }
+    @keyframes surgir {
+      from { transform: scale(.6); opacity: 0; }
+      to   { transform: scale(1);  opacity: 1; }
+    }
+
+    .casa.vencedora {
+      background: #f0fdf4;
+      border-color: var(--acerto);
+    }
+
+    .casa.ultima-ia { border-color: var(--o); }
+
+    /* ── Controles ── */
+    .controles {
+      margin-top: 20px;
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 12px;
-      width: 300px;
     }
 
-    .card {
-      background: #fff;
-      border: 1px solid #dde;
+    .vez {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--texto-suave);
+    }
+
+    button {
+      font: inherit;
+      font-size: 14px;
+      padding: 10px 20px;
       border-radius: 10px;
-      padding: 14px 16px;
+      border: 1px solid var(--borda);
+      background: var(--superficie);
+      color: var(--texto);
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    button:hover { border-color: #c9c9d4; }
+
+    button.destaque {
+      background: var(--x);
+      border-color: var(--x);
+      color: #fff;
+    }
+    button.destaque:hover { background: #4338ca; border-color: #4338ca; }
+
+    #resultado {
+      display: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+    #resultado.vitoria { background: #eef2ff; color: var(--x); }
+    #resultado.derrota { background: #fff7ed; color: var(--o); }
+    #resultado.empate  { background: #f4f4f5; color: var(--texto-suave); }
+
+    /* ── Painel lateral ── */
+    .painel { display: flex; flex-direction: column; gap: 16px; width: 300px; }
+
+    .cartao {
+      background: var(--superficie);
+      border: 1px solid var(--borda);
+      border-radius: var(--raio);
+      padding: 16px 18px;
     }
 
-    .card-title {
+    .rotulo {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      letter-spacing: .06em;
-      color: #888;
-      margin-bottom: 8px;
+      color: var(--texto-suave);
+      margin-bottom: 10px;
     }
 
-    .card-value {
+    #predicao {
       font-size: 17px;
       font-weight: 600;
-      color: #1a1a2e;
+      line-height: 1.3;
+      margin-bottom: 10px;
     }
 
-    .ai-class {
-      font-size: 15px;
-      font-weight: 700;
-      color: #2c3e50;
-      margin-bottom: 4px;
-    }
-
-    .ai-verdict {
-      font-size: 13px;
-      padding: 3px 8px;
-      border-radius: 4px;
+    .veredito {
       display: inline-block;
-    }
-    .ai-verdict.correct { background: #d4edda; color: #155724; }
-    .ai-verdict.wrong   { background: #f8d7da; color: #721c24; }
-    .ai-verdict.pending { background: #e2e3e5; color: #555; }
-
-    .real-state-val {
-      font-size: 15px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
       font-weight: 600;
-      color: #34495e;
     }
+    .veredito.aguardando { background: #f4f4f5; color: var(--texto-suave); }
+    .veredito.acerto     { background: #f0fdf4; color: var(--acerto); }
+    .veredito.erro       { background: #fef2f2; color: var(--erro); }
+
+    #estado-real { font-size: 15px; font-weight: 500; }
 
     /* Acurácia */
-    .accuracy-bar-bg {
-      height: 10px;
-      background: #e9ecef;
-      border-radius: 5px;
-      margin-top: 8px;
+    .acuracia-numero {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .acuracia-detalhe {
+      font-size: 12px;
+      color: var(--texto-suave);
+      margin-top: 2px;
+      margin-bottom: 12px;
+    }
+    .barra-fundo {
+      height: 6px;
+      background: #f0f0f4;
+      border-radius: 999px;
       overflow: hidden;
     }
-    .accuracy-bar {
+    .barra {
       height: 100%;
-      background: #27ae60;
-      border-radius: 5px;
-      transition: width 0.3s;
-      width: 0%;
-    }
-    .accuracy-text {
-      font-size: 20px;
-      font-weight: 800;
-      color: #155724;
-    }
-    .accuracy-detail {
-      font-size: 12px;
-      color: #888;
-      margin-top: 2px;
+      width: 0;
+      border-radius: 999px;
+      background: var(--acerto);
+      transition: width .3s ease;
     }
 
     /* Histórico */
-    .history-list {
+    .historico {
       display: flex;
-      flex-direction: column;
-      gap: 5px;
-      max-height: 220px;
-      overflow-y: auto;
-    }
-    .history-item {
-      display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       gap: 6px;
-      font-size: 12px;
-      padding: 5px 8px;
-      border-radius: 5px;
-      background: #f8f9fa;
     }
-    .history-item .h-num {
-      font-size: 10px;
-      color: #aaa;
-      min-width: 16px;
-    }
-    .history-item .h-dot {
-      width: 8px; height: 8px;
+    .ponto {
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
-      flex-shrink: 0;
     }
-    .history-item .h-dot.correct { background: #27ae60; }
-    .history-item .h-dot.wrong   { background: #e74c3c; }
-    .history-item .h-pred { color: #333; flex: 1; }
-    .history-item .h-real { color: #888; font-size: 11px; }
-    .history-empty { font-size: 12px; color: #aaa; }
-
+    .ponto.acerto { background: var(--acerto); }
+    .ponto.erro   { background: var(--erro); }
+    .vazio { font-size: 12px; color: var(--texto-suave); }
   </style>
 </head>
 <body>
 
-  <h1>Jogo da Velha — IA Classificadora</h1>
-  <p class="subtitle">Humano (X) vs Computador Aleatório (O) · IA classifica o estado após cada jogada<br>
-    modelo em uso: <strong>{{ modelo_nome }}</strong></p>
+  <header>
+    <h1>Jogo da Velha — IA Classificadora</h1>
+    <p class="subtitulo">Você joga de X contra um computador aleatório (O).<br>
+      A cada jogada, a IA classifica o estado do tabuleiro.</p>
+    <span class="modelo">modelo: <strong>{{ modelo_nome }}</strong></span>
+  </header>
 
-  <div class="container">
+  <div class="conteudo">
 
-    <!-- ── Tabuleiro ── -->
-    <div class="board-section">
-      <div class="board" id="board"></div>
-      <div class="turn-label" id="turn-label">Sua vez (X)</div>
-      <div id="game-result"></div>
-      <button class="next-move" id="btn-next" onclick="computerTurn()" style="display:none">
-        Computador Jogar (O) →
-      </button>
-      <button class="restart" onclick="restartGame()">Reiniciar Partida</button>
+    <div>
+      <div class="tabuleiro" id="tabuleiro"></div>
+      <div class="controles">
+        <span class="vez" id="vez">Sua vez (X)</span>
+        <div id="resultado"></div>
+        <button class="destaque" id="btn-computador" onclick="jogadaDoComputador()"
+                style="display:none">Computador jogar (O)</button>
+        <button onclick="reiniciar()">Reiniciar partida</button>
+      </div>
     </div>
 
-    <!-- ── Painel ── -->
-    <div class="panel">
+    <div class="painel">
 
-      <div class="card">
-        <div class="card-title">Predição da IA (MLP)</div>
-        <div class="ai-class" id="ai-class">—</div>
-        <span class="ai-verdict pending" id="ai-verdict">aguardando jogada...</span>
+      <div class="cartao">
+        <div class="rotulo">Predição da IA</div>
+        <div id="predicao">—</div>
+        <span class="veredito aguardando" id="veredito">aguardando jogada</span>
       </div>
 
-      <div class="card">
-        <div class="card-title">Estado Real do Tabuleiro</div>
-        <div class="real-state-val" id="real-state">Início do jogo</div>
+      <div class="cartao">
+        <div class="rotulo">Estado real</div>
+        <div id="estado-real">Início do jogo</div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Histórico de Predições</div>
-        <div class="history-list" id="history-list">
-          <span class="history-empty">Nenhuma predição ainda.</span>
-        </div>
+      <div class="cartao">
+        <div class="rotulo">Acurácia da IA nesta sessão</div>
+        <div class="acuracia-numero" id="acuracia">—</div>
+        <div class="acuracia-detalhe" id="acuracia-detalhe">nenhuma predição ainda</div>
+        <div class="barra-fundo"><div class="barra" id="barra"></div></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Acurácia da IA (nesta sessão)</div>
-        <div class="accuracy-text" id="accuracy-pct">—</div>
-        <div class="accuracy-detail" id="accuracy-detail">0 acertos de 0 predições</div>
-        <div class="accuracy-bar-bg">
-          <div class="accuracy-bar" id="accuracy-bar"></div>
+      <div class="cartao">
+        <div class="rotulo">Histórico de predições</div>
+        <div class="historico" id="historico">
+          <span class="vazio">Nenhuma predição ainda.</span>
         </div>
       </div>
 
@@ -272,285 +298,215 @@
   </div>
 
   <script>
-    // ── Estado do jogo ──────────────────────────────────────────────────
-    // Codificação: 0 = vazio, 1 = X (humano), 2 = O (computador)
-    let board = Array(9).fill(0);
-    let gameActive = true;
-    let lastComputerMove = -1;
-    let waitingForHuman = true;
-    const aiStats = { correct: 0, total: 0 };
-    const predHistory = [];
-    const MAX_HISTORY = 20;
-
-    // Rótulos das classes vindos do servidor (ttt/config.py), fonte única da
-    // verdade — antes esta cópia divergia e trocava "X vence" com "O vence".
-    const CLASS_LABELS = {{ class_map | tojson }};
-
-    // Codificação das casas, idêntica à usada no treinamento:
-    // 0 = vazio, 1 = O (computador), 2 = X (humano).
+    // Codificação das casas, idêntica à usada no treinamento.
     const VAZIO = 0, JOGADOR_O = 1, JOGADOR_X = 2;
 
-    // Mapeamento estado real → class_id esperado do modelo
-    const REAL_TO_CLASS = {
-      empate:         0,
-      o_vence:        1,
-      possibilidade:  2,
-      tem_jogo:       3,
-      x_vence:        4
-    };
+    // Ids das classes que encerram a partida (ver ttt/config.py)
+    const EMPATE = 0, O_VENCE = 1, X_VENCE = 4;
 
-    const LINES = [
+    const LINHAS = [
       [0,1,2],[3,4,5],[6,7,8],
       [0,3,6],[1,4,7],[2,5,8],
       [0,4,8],[2,4,6]
     ];
 
-    // ── Lógica do jogo ──────────────────────────────────────────────────
-    function checkWinner(b) {
-      for (const [a,c,d] of LINES) {
-        if (b[a] !== 0 && b[a] === b[c] && b[a] === b[d]) return b[a];
-      }
-      return 0;
-    }
+    let tabuleiro = Array(9).fill(VAZIO);
+    let emJogo = true;
+    let vezDoHumano = true;
+    let ultimaJogadaIA = -1;
+    let ultimaCasaMarcada = -1;
 
-    function getWinLine(b) {
-      for (const line of LINES) {
-        const [a,c,d] = line;
-        if (b[a] !== 0 && b[a] === b[c] && b[a] === b[d]) return line;
+    // A acurácia acumula ao longo da sessão, atravessando várias partidas.
+    const acertos = { certos: 0, total: 0 };
+    const historico = [];
+    const MAX_HISTORICO = 40;
+
+    // ── Renderização ────────────────────────────────────────────────────
+
+    // A linha vencedora é só destaque visual, por isso é calculada aqui.
+    // A classificação do estado vem do servidor, que usa ttt/game_rules.py.
+    function linhaVencedora() {
+      for (const linha of LINHAS) {
+        const [a, b, c] = linha;
+        if (tabuleiro[a] !== VAZIO && tabuleiro[a] === tabuleiro[b] && tabuleiro[a] === tabuleiro[c]) {
+          return linha;
+        }
       }
       return [];
     }
 
-    function canWinNext(b) {
-      for (const player of [JOGADOR_O, JOGADOR_X]) {
-        for (let i = 0; i < 9; i++) {
-          if (b[i] === 0) {
-            const tmp = [...b];
-            tmp[i] = player;
-            if (checkWinner(tmp) === player) return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    function getRealState(b) {
-      const w = checkWinner(b);
-      if (w === JOGADOR_X) return 'x_vence';
-      if (w === JOGADOR_O) return 'o_vence';
-      if (b.every(v => v !== 0)) return 'empate';
-      if (canWinNext(b)) return 'possibilidade';
-      return 'tem_jogo';
-    }
-
-    function isTerminal(state) {
-      return ['x_vence', 'o_vence', 'empate'].includes(state);
-    }
-
-    // ── Renderização ────────────────────────────────────────────────────
-    function renderBoard() {
-      const winLine = getWinLine(board);
-      const el = document.getElementById('board');
+    function desenharTabuleiro() {
+      const vencedora = linhaVencedora();
+      const el = document.getElementById('tabuleiro');
       el.innerHTML = '';
 
-      board.forEach((val, i) => {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        if (val === JOGADOR_X) { cell.textContent = 'X'; cell.classList.add('x'); }
-        else if (val === JOGADOR_O) { cell.textContent = 'O'; cell.classList.add('o'); }
+      tabuleiro.forEach((valor, i) => {
+        const casa = document.createElement('div');
+        casa.className = 'casa';
 
-        if (i === lastComputerMove) cell.classList.add('ai-last');
-        if (winLine.includes(i)) cell.classList.add('winning');
+        if (valor === JOGADOR_X) { casa.textContent = 'X'; casa.classList.add('x'); }
+        else if (valor === JOGADOR_O) { casa.textContent = 'O'; casa.classList.add('o'); }
 
-        if (gameActive && waitingForHuman && val === 0) {
-          cell.classList.add('clickable');
-          cell.addEventListener('click', () => humanMove(i));
+        if (i === ultimaCasaMarcada) casa.classList.add('marcada');
+        if (i === ultimaJogadaIA) casa.classList.add('ultima-ia');
+        if (vencedora.includes(i)) casa.classList.add('vencedora');
+
+        if (emJogo && vezDoHumano && valor === VAZIO) {
+          casa.classList.add('jogavel');
+          casa.addEventListener('click', () => jogadaDoHumano(i));
         }
-        el.appendChild(cell);
+        el.appendChild(casa);
       });
     }
 
-    function updateAccuracyUI() {
-      const total = aiStats.total;
-      const correct = aiStats.correct;
-      const pct = total > 0 ? Math.round((correct / total) * 100) : null;
+    function atualizarAcuracia() {
+      const { certos, total } = acertos;
+      const pct = total > 0 ? Math.round((certos / total) * 100) : null;
 
-      document.getElementById('accuracy-pct').textContent =
-        pct !== null ? `${pct}%` : '—';
-      document.getElementById('accuracy-detail').textContent =
-        `${correct} acerto${correct !== 1 ? 's' : ''} de ${total} predição${total !== 1 ? 'ões' : ''}`;
-      document.getElementById('accuracy-bar').style.width =
-        pct !== null ? `${pct}%` : '0%';
+      document.getElementById('acuracia').textContent = pct !== null ? `${pct}%` : '—';
+      document.getElementById('barra').style.width = pct !== null ? `${pct}%` : '0%';
+      document.getElementById('acuracia-detalhe').textContent =
+        total === 0 ? 'nenhuma predição ainda'
+                    : `${certos} de ${total} predições corretas`;
     }
 
-    function updateHistoryUI() {
-      const el = document.getElementById('history-list');
-      if (predHistory.length === 0) {
-        el.innerHTML = '<span class="history-empty">Nenhuma predição ainda.</span>';
+    function atualizarHistorico() {
+      const el = document.getElementById('historico');
+      if (historico.length === 0) {
+        el.innerHTML = '<span class="vazio">Nenhuma predição ainda.</span>';
         return;
       }
-      el.innerHTML = predHistory.slice().reverse().map((h, idx) => {
-        const n = predHistory.length - idx;
-        const realLabel = CLASS_LABELS[REAL_TO_CLASS[h.real]] || h.real;
-        return `
-          <div class="history-item">
-            <span class="h-num">#${n}</span>
-            <span class="h-dot ${h.correct ? 'correct' : 'wrong'}"></span>
-            <span class="h-pred">${h.pred}</span>
-            ${!h.correct ? `<span class="h-real">→ ${realLabel}</span>` : ''}
-          </div>`;
-      }).join('');
+      el.innerHTML = historico
+        .map(c => `<span class="ponto ${c ? 'acerto' : 'erro'}"></span>`)
+        .join('');
     }
 
-    function showAIResult(aiClassName, aiClassId, realState) {
-      const expectedId = REAL_TO_CLASS[realState];
-      const correct = aiClassId === expectedId;
+    function mostrarPredicao(resposta) {
+      acertos.total++;
+      if (resposta.correto) acertos.certos++;
+      historico.push(resposta.correto);
+      if (historico.length > MAX_HISTORICO) historico.shift();
 
-      aiStats.total++;
-      if (correct) aiStats.correct++;
+      document.getElementById('predicao').textContent = resposta.class_name;
+      document.getElementById('estado-real').textContent = resposta.real_name;
 
-      predHistory.push({ pred: aiClassName, real: realState, correct });
-      if (predHistory.length > MAX_HISTORY) predHistory.shift();
-
-      document.getElementById('ai-class').textContent = aiClassName;
-      document.getElementById('real-state').textContent =
-        CLASS_LABELS[expectedId] || realState;
-
-      const verdict = document.getElementById('ai-verdict');
-      if (correct) {
-        verdict.textContent = '✓ Acerto';
-        verdict.className = 'ai-verdict correct';
+      const veredito = document.getElementById('veredito');
+      if (resposta.correto) {
+        veredito.textContent = 'acerto';
+        veredito.className = 'veredito acerto';
       } else {
-        verdict.textContent = `✗ Erro — esperado: "${CLASS_LABELS[expectedId]}"`;
-        verdict.className = 'ai-verdict wrong';
+        veredito.textContent = `erro — era "${resposta.real_name}"`;
+        veredito.className = 'veredito erro';
       }
 
-      updateAccuracyUI();
-      updateHistoryUI();
-      return correct;
+      atualizarAcuracia();
+      atualizarHistorico();
     }
 
-    function showGameResult(realState, aiWasWrong) {
-      const el = document.getElementById('game-result');
+    function mostrarResultado(estadoReal, iaErrou) {
+      const el = document.getElementById('resultado');
       el.style.display = 'block';
 
-      if (realState === 'x_vence') {
-        el.textContent = '🎉 Você venceu!';
-        el.className = 'win';
-      } else if (realState === 'o_vence') {
-        el.textContent = '💻 Computador venceu!';
-        el.className = 'lose';
+      if (estadoReal === X_VENCE) {
+        el.textContent = 'Você venceu!';
+        el.className = 'vitoria';
+      } else if (estadoReal === O_VENCE) {
+        el.textContent = 'O computador venceu!';
+        el.className = 'derrota';
       } else {
-        el.textContent = '🤝 Empate!';
-        el.className = 'draw';
+        el.textContent = 'Empate!';
+        el.className = 'empate';
       }
 
-      if (aiWasWrong) {
-        el.textContent += ' (IA errou ao classificar o fim de jogo)';
-        el.className = 'ai-error';
-      }
-
-      document.getElementById('turn-label').textContent = 'Fim de jogo';
+      if (iaErrou) el.textContent += ' (a IA errou ao classificar o fim de jogo)';
+      document.getElementById('vez').textContent = 'Fim de jogo';
     }
 
-    // ── API calls ───────────────────────────────────────────────────────
-    async function apiClassify(b) {
-      const res = await fetch('/api/classify', {
+    // ── Comunicação com o servidor ──────────────────────────────────────
+    async function chamar(rota) {
+      const resposta = await fetch(rota, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ board: b })
+        body: JSON.stringify({ board: tabuleiro })
       });
-      return res.json();
-    }
-
-    async function apiComputerMove(b) {
-      const res = await fetch('/api/computer_move', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ board: b })
-      });
-      return res.json();
+      return resposta.json();
     }
 
     // ── Fluxo de jogo ───────────────────────────────────────────────────
 
-    // Chamado após qualquer jogada (humano ou computador)
-    async function afterMove() {
-      renderBoard();
-      document.getElementById('turn-label').textContent = 'IA classificando...';
+    // Chamado após qualquer jogada (humano ou computador).
+    //
+    // Regras do enunciado:
+    // • encerra o jogo quando a IA não detectar o fim de jogo (mas o jogo acabou);
+    // • continua o jogo quando a IA detectar fim incorretamente (mas o jogo segue).
+    // O fluxo é controlado pelo estado REAL, e o erro da IA é registrado.
+    async function aposJogada() {
+      desenharTabuleiro();
+      document.getElementById('vez').textContent = 'IA classificando...';
 
-      const realState = getRealState(board);
-      const { class_id, class_name } = await apiClassify(board);
-      const aiCorrect = showAIResult(class_name, class_id, realState);
+      const resposta = await chamar('/api/classify');
+      mostrarPredicao(resposta);
 
-      // Regras do enunciado:
-      // • Encerra o jogo quando a IA não detectar o fim de jogo (mas o jogo acabou)
-      // • Continua o jogo quando a IA detectar fim incorretamente (mas o jogo continua)
-      // → O fluxo é controlado pelo estado REAL, e o erro da IA é registrado.
-
-      if (isTerminal(realState)) {
-        gameActive = false;
-        waitingForHuman = false;
-        document.getElementById('btn-next').style.display = 'none';
-        renderBoard();
-        showGameResult(realState, !aiCorrect);
+      if (resposta.fim_de_jogo) {
+        emJogo = false;
+        vezDoHumano = false;
+        document.getElementById('btn-computador').style.display = 'none';
+        desenharTabuleiro();
+        mostrarResultado(resposta.real_id, !resposta.correto);
         return;
       }
 
-      // Jogo continua
-      if (waitingForHuman === false) {
-        // Acabou de jogar O → volta para humano
-        waitingForHuman = true;
-        document.getElementById('turn-label').textContent = 'Sua vez (X)';
-        document.getElementById('btn-next').style.display = 'none';
-        renderBoard();
-      } else {
-        // Acabou de jogar X → aguarda clique para computador jogar
-        waitingForHuman = false;
-        document.getElementById('turn-label').textContent = 'Vez do Computador (O)';
-        document.getElementById('btn-next').style.display = 'block';
-        renderBoard();
-      }
+      vezDoHumano = !vezDoHumano;
+      document.getElementById('vez').textContent =
+        vezDoHumano ? 'Sua vez (X)' : 'Vez do computador (O)';
+      document.getElementById('btn-computador').style.display =
+        vezDoHumano ? 'none' : 'block';
+      desenharTabuleiro();
     }
 
-    async function humanMove(index) {
-      if (!gameActive || !waitingForHuman || board[index] !== VAZIO) return;
-      board[index] = JOGADOR_X;
-      lastComputerMove = -1;
-      await afterMove();
+    async function jogadaDoHumano(casa) {
+      if (!emJogo || !vezDoHumano || tabuleiro[casa] !== VAZIO) return;
+      tabuleiro[casa] = JOGADOR_X;
+      ultimaCasaMarcada = casa;
+      ultimaJogadaIA = -1;
+      await aposJogada();
     }
 
-    async function computerTurn() {
-      if (!gameActive) return;
-      document.getElementById('btn-next').style.display = 'none';
-      const { move } = await apiComputerMove(board);
+    async function jogadaDoComputador() {
+      if (!emJogo) return;
+      document.getElementById('btn-computador').style.display = 'none';
+
+      const { move } = await chamar('/api/computer_move');
       if (move === -1) return;
-      board[move] = JOGADOR_O;
-      lastComputerMove = move;
-      await afterMove();
+
+      tabuleiro[move] = JOGADOR_O;
+      ultimaCasaMarcada = move;
+      ultimaJogadaIA = move;
+      await aposJogada();
     }
 
-    function restartGame() {
-      board = Array(9).fill(0);
-      gameActive = true;
-      waitingForHuman = true;
-      lastComputerMove = -1;
-      predHistory.length = 0;
+    function reiniciar() {
+      tabuleiro = Array(9).fill(VAZIO);
+      emJogo = true;
+      vezDoHumano = true;
+      ultimaJogadaIA = -1;
+      ultimaCasaMarcada = -1;
+      historico.length = 0;
 
-      document.getElementById('game-result').style.display = 'none';
-      document.getElementById('btn-next').style.display = 'none';
-      document.getElementById('ai-class').textContent = '—';
-      document.getElementById('ai-verdict').textContent = 'aguardando jogada...';
-      document.getElementById('ai-verdict').className = 'ai-verdict pending';
-      document.getElementById('real-state').textContent = 'Início do jogo';
-      document.getElementById('turn-label').textContent = 'Sua vez (X)';
-      updateHistoryUI();
+      document.getElementById('resultado').style.display = 'none';
+      document.getElementById('predicao').textContent = '—';
+      document.getElementById('veredito').textContent = 'aguardando jogada';
+      document.getElementById('veredito').className = 'veredito aguardando';
+      document.getElementById('estado-real').textContent = 'Início do jogo';
+      document.getElementById('vez').textContent = 'Sua vez (X)';
+      document.getElementById('btn-computador').style.display = 'none';
 
-      renderBoard();
+      atualizarAcuracia();
+      atualizarHistorico();
+      desenharTabuleiro();
     }
 
-    // ── Init ────────────────────────────────────────────────────────────
-    restartGame();
+    reiniciar();
   </script>
 </body>
 </html>

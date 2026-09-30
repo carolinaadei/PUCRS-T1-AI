@@ -14,23 +14,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sklearn.svm import SVC
 
+from ttt import experiment
 from ttt.config import RANDOM_STATE
-from ttt.experiment import cli, executar_cli
 
 NOME = "SVM"
+MODELO = SVC(random_state=RANDOM_STATE)
 
 # O kernel entra na grade junto com C e gamma: assim a escolha do kernel também
-# é decidida pelo conjunto de validação, e não fixada à mão como antes.
+# é decidida pelo conjunto de validação, e não fixada à mão.
 PARAM_GRID = {
     "kernel": ["linear", "rbf", "poly"],
     "C": [0.1, 1, 10, 50, 100],
     "gamma": ["scale", 0.01, 0.1, 1],
 }
 
-
-def criar_modelo() -> SVC:
-    return SVC(random_state=RANDOM_STATE)
-
-
 if __name__ == "__main__":
-    executar_cli(NOME, criar_modelo, PARAM_GRID, cli(__doc__))
+    experiment.main(NOME, MODELO, PARAM_GRID)
