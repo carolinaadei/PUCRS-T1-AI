@@ -222,7 +222,8 @@
 <body>
 
   <h1>Jogo da Velha — IA Classificadora</h1>
-  <p class="subtitle">Humano (X) vs Computador Aleatório (O) · IA classifica o estado após cada jogada</p>
+  <p class="subtitle">Humano (X) vs Computador Aleatório (O) · IA classifica o estado após cada jogada<br>
+    modelo em uso: <strong>{{ modelo_nome }}</strong></p>
 
   <div class="container">
 
@@ -281,23 +282,21 @@
     const predHistory = [];
     const MAX_HISTORY = 20;
 
-    // Mapeamento estado real → class_id esperado do modelo
-    // Verificado contra treino.csv: 0=Empate, 1=X Vence, 2=Possibilidade,
-    // 3=Tem Jogo, 4=O Vence
-    const REAL_TO_CLASS = {
-      tem_jogo:       3,
-      possibilidade:  2,
-      empate:         0,
-      o_vence:        4,
-      x_vence:        1
-    };
+    // Rótulos das classes vindos do servidor (ttt/config.py), fonte única da
+    // verdade — antes esta cópia divergia e trocava "X vence" com "O vence".
+    const CLASS_LABELS = {{ class_map | tojson }};
 
-    const CLASS_LABELS = {
-      0: 'Empate',
-      1: 'X Vence',
-      2: 'Possibilidade de Fim de Jogo',
-      3: 'Tem Jogo',
-      4: 'O Vence'
+    // Codificação das casas, idêntica à usada no treinamento:
+    // 0 = vazio, 1 = O (computador), 2 = X (humano).
+    const VAZIO = 0, JOGADOR_O = 1, JOGADOR_X = 2;
+
+    // Mapeamento estado real → class_id esperado do modelo
+    const REAL_TO_CLASS = {
+      empate:         0,
+      o_vence:        1,
+      possibilidade:  2,
+      tem_jogo:       3,
+      x_vence:        4
     };
 
     const LINES = [
@@ -323,7 +322,7 @@
     }
 
     function canWinNext(b) {
-      for (const player of [1, 2]) {
+      for (const player of [JOGADOR_O, JOGADOR_X]) {
         for (let i = 0; i < 9; i++) {
           if (b[i] === 0) {
             const tmp = [...b];
@@ -337,8 +336,8 @@
 
     function getRealState(b) {
       const w = checkWinner(b);
-      if (w === 1) return 'x_vence';
-      if (w === 2) return 'o_vence';
+      if (w === JOGADOR_X) return 'x_vence';
+      if (w === JOGADOR_O) return 'o_vence';
       if (b.every(v => v !== 0)) return 'empate';
       if (canWinNext(b)) return 'possibilidade';
       return 'tem_jogo';
@@ -357,8 +356,8 @@
       board.forEach((val, i) => {
         const cell = document.createElement('div');
         cell.className = 'cell';
-        if (val === 1) { cell.textContent = 'X'; cell.classList.add('x'); }
-        else if (val === 2) { cell.textContent = 'O'; cell.classList.add('o'); }
+        if (val === JOGADOR_X) { cell.textContent = 'X'; cell.classList.add('x'); }
+        else if (val === JOGADOR_O) { cell.textContent = 'O'; cell.classList.add('o'); }
 
         if (i === lastComputerMove) cell.classList.add('ai-last');
         if (winLine.includes(i)) cell.classList.add('winning');
@@ -515,8 +514,8 @@
     }
 
     async function humanMove(index) {
-      if (!gameActive || !waitingForHuman || board[index] !== 0) return;
-      board[index] = 1;
+      if (!gameActive || !waitingForHuman || board[index] !== VAZIO) return;
+      board[index] = JOGADOR_X;
       lastComputerMove = -1;
       await afterMove();
     }
@@ -526,7 +525,7 @@
       document.getElementById('btn-next').style.display = 'none';
       const { move } = await apiComputerMove(board);
       if (move === -1) return;
-      board[move] = 2;
+      board[move] = JOGADOR_O;
       lastComputerMove = move;
       await afterMove();
     }

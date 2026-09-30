@@ -1,0 +1,25 @@
+# T1 - Tic Tac Toe com ML - PUCRS Inteligência Artificial
+#
+# Instalação:
+#   python -m venv .venv
+#   .venv\Scripts\activate        (Windows)
+#   pip install -r requirements.txt
+
+# Núcleo: manipulação de dados e algoritmos de ML
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.4          # k-NN, árvore de decisão, MLP, SVM
+joblib>=1.3                # serialização dos modelos treinados
+
+# Gráficos e matrizes de confusão
+matplotlib>=3.7
+seaborn>=0.12
+
+# Algoritmo de escolha livre
+xgboost>=2.0
+
+# Front end (item 6 do enunciado)
+flask>=3.0
+
+# Notebooks de construção do dataset e exploração
+jupyter>=1.0
