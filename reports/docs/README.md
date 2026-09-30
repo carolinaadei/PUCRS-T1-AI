@@ -1,5 +1,9 @@
 # Documentação técnica
 
+**T1 — Tic Tac Toe com Machine Learning**
+PUCRS · Inteligência Artificial · Prof.ª Silvia Moraes
+**Grupo:** Carolina Gonçalves · Vicente Goldani
+
 Relatório do desenvolvimento, na ordem das etapas do enunciado. Cada documento
 aponta para o código que o implementa.
 

@@ -2,6 +2,8 @@
 
 PUCRS · Inteligência Artificial · Prof.ª Silvia Moraes
 
+**Grupo:** Carolina Gonçalves · Vicente Goldani
+
 Sistema de IA que recebe o estado de um tabuleiro de jogo da velha 3×3 e o
 classifica em uma de cinco categorias. **A IA não joga** — ela verifica o estado
 do jogo.
