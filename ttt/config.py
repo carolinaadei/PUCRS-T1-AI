@@ -12,7 +12,6 @@ from pathlib import Path
 # rodados de qualquer lugar.
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-RAW_UCI_FILE = ROOT_DIR / "data" / "raw" / "tic-tac-toe.data"
 TREINO_CSV = ROOT_DIR / "data" / "processed" / "treino.csv"
 VALIDACAO_CSV = ROOT_DIR / "data" / "processed" / "validacao.csv"
 TESTE_CSV = ROOT_DIR / "data" / "processed" / "teste.csv"

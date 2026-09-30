@@ -2,20 +2,21 @@
 
 PUCRS · Inteligência Artificial · Prof.ª Silvia Moraes
 
-Sistema de IA que recebe o estado de um tabuleiro de jogo da velha 3×3 e o classifica
-em uma de cinco categorias. A IA **não joga** — ela verifica o estado do jogo.
+Sistema de IA que recebe o estado de um tabuleiro de jogo da velha 3×3 e o
+classifica em uma de cinco categorias. **A IA não joga** — ela verifica o estado
+do jogo.
 
-| id | Classe |
-|---:|---|
-| 0 | Empate |
-| 1 | O vence |
-| 2 | Possibilidade de Fim de Jogo |
-| 3 | Tem jogo |
-| 4 | X vence |
+| id | Classe | Definição |
+|---:|---|---|
+| 0 | Empate | tabuleiro cheio, sem vencedor |
+| 1 | O vence | O tem três em linha |
+| 2 | Possibilidade de Fim de Jogo | alguém pode vencer na próxima jogada |
+| 3 | Tem jogo | partida em andamento, sem ameaça imediata |
+| 4 | X vence | X tem três em linha |
 
-Codificação das casas do tabuleiro: `0 = vazio`, `1 = O`, `2 = X`.
-Esse mapeamento é declarado **uma única vez**, em [ttt/config.py](ttt/config.py), e é a
-fonte da verdade para todo o projeto — scripts, notebooks e front end.
+Casas do tabuleiro: `0 = vazio`, `1 = O`, `2 = X`. Esse mapeamento é declarado
+uma única vez, em [ttt/config.py](ttt/config.py), e é a fonte da verdade para
+scripts, notebooks e front end.
 
 ---
 
@@ -27,38 +28,53 @@ python -m venv .venv
 pip install -r requirements.txt
 
 python models/comparar.py         # treina os 5 algoritmos e gera a comparação
-python frontend/app.py            # sobe o front end em http://localhost:5001
+python frontend/app.py            # front end em http://localhost:5001
 ```
 
-Para rodar um algoritmo isolado:
+Um algoritmo isolado:
 
 ```bash
-python models/knn.py                       # ambas as abordagens de pré-processamento
-python models/svm.py --abordagem derivada  # apenas uma delas
+python models/knn.py                       # ambas as abordagens
+python models/svm.py --abordagem derivada  # apenas uma
 ```
 
 ---
 
-## Estrutura do projeto
+## Documentação
 
-A organização segue a ordem das etapas do enunciado: os dados entram em `data/`,
-passam pelo pipeline de `ttt/`, são consumidos pelos algoritmos em `models/`, e os
-resultados saem em `reports/` e no front end.
+O relatório técnico completo está em **[reports/docs/](reports/docs/)**, na ordem
+das etapas do enunciado:
+
+| Documento | Conteúdo |
+|---|---|
+| [1. Dataset](reports/docs/01-dataset.md) | o que o UCI entrega, os problemas encontrados, os passos de correção e por que "Empate" só tem 16 amostras |
+| [2. Pré-processamento](reports/docs/02-preprocessamento.md) | as duas abordagens, o que cada uma aposta e como o custo é medido |
+| [3. Metodologia](reports/docs/03-metodologia.md) | divisão dos dados, `PredefinedSplit`, métricas e cuidados contra overfitting |
+| [4. Resultados](reports/docs/04-resultados.md) | comparação entre os algoritmos e escolha do melhor |
+| [5. Front end](reports/docs/05-frontend.md) | a regra de teste do enunciado e os bugs corrigidos |
+| [Algoritmos](reports/docs/README.md#algoritmos) | um documento por algoritmo, com parâmetros justificados e análise |
+
+---
+
+## Estrutura
+
+Os dados entram em `data/`, passam pelo pipeline de `ttt/`, são consumidos pelos
+algoritmos em `models/`, e os resultados saem em `reports/` e no front end.
 
 ```
 ├── data/
 │   ├── raw/              Dataset original do UCI, intocado
 │   └── processed/        Divisão física: treino / validação / teste
 │
-├── ttt/                  Pacote compartilhado — o "como" do projeto
+├── ttt/                  Código compartilhado — o "como"
 │   ├── config.py           Caminhos, CLASS_MAP, semente aleatória
-│   ├── game_rules.py       Regras do jogo da velha (a verdade sobre um tabuleiro)
+│   ├── game_rules.py       Regras do jogo: o estado real de um tabuleiro
 │   ├── dataset.py          Carga dos três conjuntos + PredefinedSplit
 │   ├── preprocessing.py    As duas abordagens de pré-processamento
-│   ├── experiment.py       Protocolo experimental único (GridSearch + avaliação)
-│   └── evaluation.py       Métricas, matriz de confusão, registro dos resultados
+│   ├── experiment.py       Protocolo experimental único
+│   └── evaluation.py       Métricas, matriz de confusão, registro
 │
-├── models/               Um script por algoritmo — o "o quê" de cada um
+├── models/               Um script por algoritmo — o "o quê"
 │   ├── knn.py              k-NN               (exigido)
 │   ├── arvore_decisao.py   Árvore de decisão  (exigido)
 │   ├── mlp.py              MLP                (exigido)
@@ -67,103 +83,97 @@ resultados saem em `reports/` e no front end.
 │   └── comparar.py         Roda todos e monta a comparação final
 │
 ├── notebooks/
-│   ├── 01_construcao_dataset.ipynb   Diagnóstico do UCI, reclassificação e divisão
+│   ├── 01_construcao_dataset.ipynb   Diagnóstico do UCI e divisão
 │   └── 02_knn_exploratorio.ipynb     Exploração detalhada do k-NN
 │
-├── frontend/             Front end do item 6 (Flask + HTML)
+├── frontend/             Flask + HTML (item 6)
 ├── reports/
-│   ├── docs/             Documentação por algoritmo
+│   ├── docs/             Documentação técnica
 │   ├── figures/          Matrizes de confusão e gráficos
 │   └── metrics/          resultados.csv e comparacao_final.csv
 └── artifacts/            Modelos treinados (.joblib), regeráveis
 ```
 
-Cada script em `models/` declara apenas três coisas — `NOME`, `MODELO` e `PARAM_GRID`.
-Todo o resto (carga, pré-processamento, busca de hiperparâmetros, avaliação e registro)
-vem de `ttt/`. É isso que garante que os cinco algoritmos sejam
-medidos exatamente da mesma forma e que a comparação do item 5 signifique alguma coisa.
+Cada script em `models/` declara três coisas — `NOME`, `MODELO` e `PARAM_GRID`.
+Carga, pré-processamento, busca de hiperparâmetros, avaliação e registro vêm de
+`ttt/`. É isso que garante que os cinco algoritmos sejam medidos exatamente da
+mesma forma, e que a comparação do item 5 signifique alguma coisa.
 
 ---
 
 ## Mapa: enunciado → código
 
-| Item do enunciado | Onde está |
-|---|---|
-| 1. Objetivo — classificar o estado do tabuleiro | [ttt/game_rules.py](ttt/game_rules.py) define as 5 classes |
-| 2. Dataset — obter, analisar e adequar o UCI | [notebooks/01_construcao_dataset.ipynb](notebooks/01_construcao_dataset.ipynb) |
-| 3. Pré-processamento — duas abordagens | [ttt/preprocessing.py](ttt/preprocessing.py) |
-| 4. Divisão do dataset — treino / validação / teste | [data/processed/](data/processed/) + [ttt/dataset.py](ttt/dataset.py) |
-| 5. Solução de IA — 5 algoritmos e comparação | [models/](models/) + [reports/docs/](reports/docs/) |
-| 6. Front end — interação e acurácia ao vivo | [frontend/app.py](frontend/app.py) |
-
----
-
-## Dataset
-
-O dataset do UCI ([tic+tac+toe+endgame](https://archive.ics.uci.edu/dataset/101/tic+tac+toe+endgame))
-não atende ao problema como vem: ele traz **apenas 2 classes** (`positive`/`negative`) e
-**somente estados finais** de partida. O notebook 01 documenta os problemas encontrados e
-os passos executados para corrigi-los:
-
-1. Reclassificação lógica dos 958 registros originais nas classes reais do trabalho;
-2. Geração de estados sintéticos, por simulação de partidas, para as classes
-   "Tem jogo" e "Possibilidade de Fim de Jogo", ausentes do UCI;
-3. Deduplicação dos tabuleiros;
-4. Balanceamento em ~200 amostras por classe;
-5. Divisão estratificada em 60% treino / 20% validação / 20% teste.
-
-**Limitação conhecida:** a classe *Empate* ficou com apenas **16 amostras** (contra 200
-das demais), porque existem poucos tabuleiros de empate distintos. Isso torna as métricas
-dessa classe pouco confiáveis — com ~4 amostras no teste, um único erro muda o recall em
-25 pontos. As médias de precision/recall/F1 são `weighted` por causa disso.
-
----
-
-## As duas abordagens de pré-processamento
-
-O item 3 pede que se teste duas entradas diferentes e se verifique qual é mais adequada.
-Ambas vivem em [ttt/preprocessing.py](ttt/preprocessing.py) e são intercambiáveis via
-`--abordagem`:
-
-| Abordagem | Entrada do modelo | Colunas |
+| Item do enunciado | Código | Documentação |
 |---|---|---|
-| `bruta` | As 9 casas do tabuleiro em one-hot | 27 |
-| `derivada` | Features extraídas: qtd. de X, qtd. de O, casas vazias, linhas com 2 X, linhas com 2 O, jogador da vez e máscara de posições ocupadas | 15 |
-
-O one-hot na abordagem bruta evita que o modelo leia os códigos `0/1/2` como uma escala
-ordenada — "X" não é o dobro de "O". Na abordagem derivada as features têm escalas
-diferentes entre si (contagens de 0 a 9 ao lado de flags 0/1), então elas são
-padronizadas.
-
-`python models/comparar.py` imprime a acurácia média de cada abordagem ao final,
-que é a resposta direta à pergunta do enunciado.
+| 1. Classificar o estado do tabuleiro | [ttt/game_rules.py](ttt/game_rules.py) | — |
+| 2. Dataset: obter, analisar, adequar | [notebooks/01_construcao_dataset.ipynb](notebooks/01_construcao_dataset.ipynb) | [01-dataset.md](reports/docs/01-dataset.md) |
+| 3. Pré-processamento: duas abordagens | [ttt/preprocessing.py](ttt/preprocessing.py) | [02-preprocessamento.md](reports/docs/02-preprocessamento.md) |
+| 4. Divisão: treino / validação / teste | [ttt/dataset.py](ttt/dataset.py), [data/processed/](data/processed/) | [03-metodologia.md](reports/docs/03-metodologia.md) |
+| 5. Cinco algoritmos e comparação | [models/](models/) | [04-resultados.md](reports/docs/04-resultados.md) |
+| 6. Front end com acurácia ao vivo | [frontend/app.py](frontend/app.py) | [05-frontend.md](reports/docs/05-frontend.md) |
 
 ---
 
-## Protocolo experimental
+## Resumo do processo
 
-Vale para os cinco algoritmos, sem exceção ([ttt/experiment.py](ttt/experiment.py)):
+1. **O dataset do UCI não serve como vem.** Ele tem 2 classes e só posições
+   finais de partida — zero instâncias de "Tem jogo" e "Possibilidade de Fim de
+   Jogo". Reclassificamos as 958 linhas pelas regras do jogo, geramos estados
+   intermediários por simulação de partidas, deduplicamos e balanceamos.
+   → [01-dataset.md](reports/docs/01-dataset.md)
 
-1. Treino e validação entram no `GridSearchCV` via `PredefinedSplit`, de modo que o
-   conjunto de validação **físico** seja o único fold de pontuação — e não uma
-   reparticionamento aleatório do treino;
-2. O melhor modelo é retreinado em treino + validação;
-3. O conjunto de teste é tocado **uma única vez**, na avaliação final.
+2. **"Empate" tem 16 amostras porque 16 é tudo que existe.** Enumerando os 126
+   tabuleiros cheios possíveis, apenas 16 não têm vencedor. O dataset cobre
+   100% dessa classe: o desbalanceamento é propriedade do problema, não falha do
+   processo. Por isso as médias são `weighted`.
 
-O pré-processamento entra dentro do `Pipeline`, então é reajustado a cada fold e nunca
-enxerga os dados de validação antes da hora.
+3. **Duas representações de entrada, um protocolo só.** A abordagem `bruta`
+   entrega o tabuleiro em one-hot; a `derivada` entrega features extraídas
+   (contagens, ameaças, jogador da vez). Tudo o mais é idêntico, para que a
+   comparação fale da representação e não do resto.
+   → [02-preprocessamento.md](reports/docs/02-preprocessamento.md)
+
+4. **O conjunto de validação é físico, e é usado.** `PredefinedSplit` força o
+   `GridSearchCV` a pontuar no `validacao.csv` em vez de reparticionar o treino.
+   O teste é tocado uma única vez.
+   → [03-metodologia.md](reports/docs/03-metodologia.md)
+
+5. **A classe difícil é sempre a mesma.** "Possibilidade de Fim de Jogo" tem o
+   pior F1 em todos os algoritmos medidos. É a única classe definida por uma
+   contagem em vez de uma posição, e a com menor cobertura no dataset (5,2% dos
+   estados que existem no jogo).
+   → [04-resultados.md](reports/docs/04-resultados.md)
 
 ---
 
-## Front end
+## Ferramentas de IA utilizadas
 
-O front end ([frontend/app.py](frontend/app.py)) põe um humano (X) contra um computador
-que joga aleatoriamente (O). A cada jogada o tabuleiro é enviado ao classificador, e a
-tela mostra a predição da IA, o estado real e a acurácia acumulada da sessão.
+> O enunciado pede que as ferramentas de IA usadas sejam indicadas, com os
+> pontos em que foram aplicadas.
 
-Conforme o enunciado, o fluxo é controlado pelo **estado real** e os erros da IA são
-registrados: se a IA não detectar o fim de jogo, a partida encerra mesmo assim; se
-detectar um fim que não ocorreu, o jogo continua.
+**Claude Code (Anthropic)** — usado em:
 
-O servidor **carrega** o melhor modelo de `artifacts/` em vez de treinar na subida.
-Rode `python models/comparar.py` ao menos uma vez antes.
+| Onde | O quê |
+|---|---|
+| Arquitetura | reorganização da estrutura de pastas e extração do código compartilhado em `ttt/` |
+| `ttt/` | implementação dos módulos compartilhados: configuração, regras do jogo, carga, pré-processamento, protocolo e avaliação |
+| `models/` | padronização dos cinco scripts sob uma interface comum |
+| Revisão de código | identificação dos bugs descritos em [05-frontend.md](reports/docs/05-frontend.md) e do objetivo binário no XGBoost |
+| Front end | redesign da interface e simplificação do JavaScript |
+| Documentação | redação dos documentos em [reports/docs/](reports/docs/) |
+| Análise do dataset | enumeração do espaço de estados do jogo ([01-dataset.md](reports/docs/01-dataset.md) §1.4) |
+
+O código original dos algoritmos (MLP, SVM, XGBoost) e os notebooks foram
+escritos pelo grupo; a ferramenta foi usada para reorganizá-los, unificar o
+protocolo experimental e documentar.
+
+---
+
+## Limitações conhecidas
+
+| Limitação | Situação |
+|---|---|
+| "Empate" com 16 amostras | inerente ao problema; ver [01-dataset.md](reports/docs/01-dataset.md) §1.4 |
+| Nem todos os algoritmos rodaram sob o protocolo unificado | rodar `python models/comparar.py`; ver [reports/docs/README.md](reports/docs/README.md) |
+| Números de SVM e XGBoost nos docs são de execuções antigas | marcados nos respectivos documentos |
+| Acurácia no front end não bate com a do teste | esperado, e explicado em [05-frontend.md](reports/docs/05-frontend.md) §5.5 |

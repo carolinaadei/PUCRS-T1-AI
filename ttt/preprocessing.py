@@ -21,13 +21,6 @@ ABORDAGENS = {
     "derivada": "Features extraídas do tabuleiro, padronizadas (15 colunas)",
 }
 
-# Mesma ordem em que `_features_do_tabuleiro` as produz. Serve para inspecionar
-# importância de features na árvore de decisão e no XGBoost.
-NOMES_FEATURES_DERIVADAS = (
-    ["qtd_x", "qtd_o", "casas_vazias", "linhas_2x", "linhas_2o", "jogador_da_vez"]
-    + [f"ocupada_{i}" for i in range(9)]
-)
-
 
 def _features_do_tabuleiro(board):
     """

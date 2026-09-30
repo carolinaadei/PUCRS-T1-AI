@@ -8,6 +8,7 @@ Protocolo experimental comum aos cinco algoritmos:
 """
 
 import argparse
+import time
 
 import joblib
 from sklearn.model_selection import GridSearchCV, PredefinedSplit
@@ -42,9 +43,16 @@ def treinar(nome, modelo, param_grid, abordagem):
     melhores = {k.removeprefix("modelo__"): v for k, v in busca.best_params_.items()}
 
     # Primeiro e único contato com o conjunto de teste
+    inicio = time.perf_counter()
     y_pred = busca.best_estimator_.predict(dados.X_teste)
+    tempo_predicao = time.perf_counter() - inicio
+
     resultado = evaluation.avaliar(
-        nome, abordagem, dados.y_teste, y_pred, busca.best_score_, melhores
+        nome, abordagem, dados.y_teste, y_pred, busca.best_score_, melhores,
+        # `refit_time_` é o tempo de treinar só o modelo escolhido, sem a busca:
+        # é ele que compara o custo das abordagens de forma justa (item 3).
+        tempo_treino=busca.refit_time_,
+        tempo_predicao=tempo_predicao,
     )
 
     destino = ARTIFACTS_DIR / f"{nome.lower().replace(' ', '_')}_{abordagem}.joblib"
@@ -76,7 +84,11 @@ def main(nome, modelo, param_grid):
     if len(resultados) > 1:
         print(f"\n{'-' * 70}\nComparação das abordagens — {nome}\n{'-' * 70}")
         for r in resultados:
-            print(f"  {r['abordagem']:<10} teste: {r['acuracia_teste']:.4f} | F1: {r['f1']:.4f}")
+            print(f"  {r['abordagem']:<10} teste: {r['acuracia_teste']:.4f} | "
+                  f"F1: {r['f1']:.4f} | treino: {r['tempo_treino_s']:.4f}s")
         melhor = max(resultados, key=lambda r: r["acuracia_teste"])
-        print(f"\n  Melhor abordagem: '{melhor['abordagem']}' "
+        barato = min(resultados, key=lambda r: r["tempo_treino_s"])
+        print(f"\n  Mais preciso: '{melhor['abordagem']}' "
               f"(teste = {melhor['acuracia_teste']:.4f})")
+        print(f"  Mais barato : '{barato['abordagem']}' "
+              f"(treino = {barato['tempo_treino_s']:.4f}s)")

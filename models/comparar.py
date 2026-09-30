@@ -78,11 +78,19 @@ def _comparar_abordagens(df):
     if df["abordagem"].nunique() < 2:
         return
 
-    medias = df.groupby("abordagem")["acuracia_teste"].mean().sort_values(ascending=False)
-    print("\nAcurácia média por abordagem de pré-processamento:")
-    for abordagem, media in medias.items():
-        print(f"  {abordagem:<10} {media:.4f}  ({preprocessing.ABORDAGENS[abordagem]})")
-    print(f"  → Abordagem mais adequada no geral: '{medias.index[0]}'")
+    resumo = (df.groupby("abordagem")[["acuracia_teste", "tempo_treino_s", "tempo_predicao_ms"]]
+                .mean()
+                .sort_values("acuracia_teste", ascending=False))
+
+    print("\nMédias por abordagem de pré-processamento:")
+    for abordagem, linha in resumo.iterrows():
+        print(f"  {abordagem:<10} acurácia {linha['acuracia_teste']:.4f} | "
+              f"treino {linha['tempo_treino_s']:.4f}s | "
+              f"predição {linha['tempo_predicao_ms']:.2f}ms")
+        print(f"             {preprocessing.ABORDAGENS[abordagem]}")
+
+    print(f"  → Mais adequada: '{resumo.index[0]}'")
+    print(f"  → Menos custosa: '{resumo['tempo_treino_s'].idxmin()}'")
 
 
 def _salvar_grafico(df):
