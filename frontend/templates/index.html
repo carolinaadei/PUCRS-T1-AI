@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Jogo da Velha — IA Classificadora</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .container {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── Tabuleiro ── */
+    .board-section { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      grid-template-rows: repeat(3, 110px);
+      gap: 6px;
+    }
+
+    .cell {
+      width: 110px; height: 110px;
+      background: #fff;
+      border: 2px solid #ccd;
+      border-radius: 8px;
+      font-size: 52px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .cell:hover.clickable { background: #eef2ff; }
+    .cell.x { color: #e74c3c; }
+    .cell.o { color: #2980b9; }
+    .cell.ai-last { background: #d6eaff; border-color: #2980b9; }
+    .cell.winning { background: #d4edda; border-color: #27ae60; }
+    .cell.winning.x { color: #c0392b; }
+    .cell.winning.o { color: #1a5276; }
+
+    .turn-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      padding: 8px 20px;
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid #dde;
+    }
+
+    #game-result {
+      font-size: 18px;
+      font-weight: bold;
+      padding: 10px 24px;
+      border-radius: 8px;
+      display: none;
+      text-align: center;
+    }
+    #game-result.win  { background: #d4edda; color: #155724; }
+    #game-result.lose { background: #f8d7da; color: #721c24; }
+    #game-result.draw { background: #fff3cd; color: #856404; }
+    #game-result.ai-error { background: #fff3cd; color: #856404; }
+
+    button.restart, button.next-move {
+      padding: 10px 28px;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.restart { background: #2980b9; color: #fff; }
+    button.restart:hover { background: #1a6fa8; }
+    button.next-move { background: #27ae60; color: #fff; }
+    button.next-move:hover { background: #1e8449; }
+
+    /* ── Painel lateral ── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 300px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #dde;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .card-value {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .ai-class {
+      font-size: 15px;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 4px;
+    }
+
+    .ai-verdict {
+      font-size: 13px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .ai-verdict.correct { background: #d4edda; color: #155724; }
+    .ai-verdict.wrong   { background: #f8d7da; color: #721c24; }
+    .ai-verdict.pending { background: #e2e3e5; color: #555; }
+
+    .real-state-val {
+      font-size: 15px;
+      font-weight: 600;
+      color: #34495e;
+    }
+
+    /* Acurácia */
+    .accuracy-bar-bg {
+      height: 10px;
+      background: #e9ecef;
+      border-radius: 5px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .accuracy-bar {
+      height: 100%;
+      background: #27ae60;
+      border-radius: 5px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+    .accuracy-text {
+      font-size: 20px;
+      font-weight: 800;
+      color: #155724;
+    }
+    .accuracy-detail {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* Histórico */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      background: #f8f9fa;
+    }
+    .history-item .h-num {
+      font-size: 10px;
+      color: #aaa;
+      min-width: 16px;
+    }
+    .history-item .h-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .history-item .h-dot.correct { background: #27ae60; }
+    .history-item .h-dot.wrong   { background: #e74c3c; }
+    .history-item .h-pred { color: #333; flex: 1; }
+    .history-item .h-real { color: #888; font-size: 11px; }
+    .history-empty { font-size: 12px; color: #aaa; }
+
+  </style>
+</head>
+<body>
+
+  <h1>Jogo da Velha — IA Classificadora</h1>
+  <p class="subtitle">Humano (X) vs Computador Aleatório (O) · IA classifica o estado após cada jogada</p>
+
+  <div class="container">
+
+    <!-- ── Tabuleiro ── -->
+    <div class="board-section">
+      <div class="board" id="board"></div>
+      <div class="turn-label" id="turn-label">Sua vez (X)</div>
+      <div id="game-result"></div>
+      <button class="next-move" id="btn-next" onclick="computerTurn()" style="display:none">
+        Computador Jogar (O) →
+      </button>
+      <button class="restart" onclick="restartGame()">Reiniciar Partida</button>
+    </div>
+
+    <!-- ── Painel ── -->
+    <div class="panel">
+
+      <div class="card">
+        <div class="card-title">Predição da IA (MLP)</div>
+        <div class="ai-class" id="ai-class">—</div>
+        <span class="ai-verdict pending" id="ai-verdict">aguardando jogada...</span>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Estado Real do Tabuleiro</div>
+        <div class="real-state-val" id="real-state">Início do jogo</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Histórico de Predições</div>
+        <div class="history-list" id="history-list">
+          <span class="history-empty">Nenhuma predição ainda.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Acurácia da IA (nesta sessão)</div>
+        <div class="accuracy-text" id="accuracy-pct">—</div>
+        <div class="accuracy-detail" id="accuracy-detail">0 acertos de 0 predições</div>
+        <div class="accuracy-bar-bg">
+          <div class="accuracy-bar" id="accuracy-bar"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Estado do jogo ──────────────────────────────────────────────────
+    // Codificação: 0 = vazio, 1 = X (humano), 2 = O (computador)
+    let board = Array(9).fill(0);
+    let gameActive = true;
+    let lastComputerMove = -1;
+    let waitingForHuman = true;
+    const aiStats = { correct: 0, total: 0 };
+    const predHistory = [];
+    const MAX_HISTORY = 20;
+
+    // Mapeamento estado real → class_id esperado do modelo
+    // Verificado contra treino.csv: 0=Empate, 1=X Vence, 2=Possibilidade,
+    // 3=Tem Jogo, 4=O Vence
+    const REAL_TO_CLASS = {
+      tem_jogo:       3,
+      possibilidade:  2,
+      empate:         0,
+      o_vence:        4,
+      x_vence:        1
+    };
+
+    const CLASS_LABELS = {
+      0: 'Empate',
+      1: 'X Vence',
+      2: 'Possibilidade de Fim de Jogo',
+      3: 'Tem Jogo',
+      4: 'O Vence'
+    };
+
+    const LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    // ── Lógica do jogo ──────────────────────────────────────────────────
+    function checkWinner(b) {
+      for (const [a,c,d] of LINES) {
+        if (b[a] !== 0 && b[a] === b[c] && b[a] === b[d]) return b[a];
+      }
+      return 0;
+    }
+
+    function getWinLine(b) {
+      for (const line of LINES) {
+        const [a,c,d] = line;
+        if (b[a] !== 0 && b[a] === b[c] && b[a] === b[d]) return line;
+      }
+      return [];
+    }
+
+    function canWinNext(b) {
+      for (const player of [1, 2]) {
+        for (let i = 0; i < 9; i++) {
+          if (b[i] === 0) {
+            const tmp = [...b];
+            tmp[i] = player;
+            if (checkWinner(tmp) === player) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function getRealState(b) {
+      const w = checkWinner(b);
+      if (w === 1) return 'x_vence';
+      if (w === 2) return 'o_vence';
+      if (b.every(v => v !== 0)) return 'empate';
+      if (canWinNext(b)) return 'possibilidade';
+      return 'tem_jogo';
+    }
+
+    function isTerminal(state) {
+      return ['x_vence', 'o_vence', 'empate'].includes(state);
+    }
+
+    // ── Renderização ────────────────────────────────────────────────────
+    function renderBoard() {
+      const winLine = getWinLine(board);
+      const el = document.getElementById('board');
+      el.innerHTML = '';
+
+      board.forEach((val, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (val === 1) { cell.textContent = 'X'; cell.classList.add('x'); }
+        else if (val === 2) { cell.textContent = 'O'; cell.classList.add('o'); }
+
+        if (i === lastComputerMove) cell.classList.add('ai-last');
+        if (winLine.includes(i)) cell.classList.add('winning');
+
+        if (gameActive && waitingForHuman && val === 0) {
+          cell.classList.add('clickable');
+          cell.addEventListener('click', () => humanMove(i));
+        }
+        el.appendChild(cell);
+      });
+    }
+
+    function updateAccuracyUI() {
+      const total = aiStats.total;
+      const correct = aiStats.correct;
+      const pct = total > 0 ? Math.round((correct / total) * 100) : null;
+
+      document.getElementById('accuracy-pct').textContent =
+        pct !== null ? `${pct}%` : '—';
+      document.getElementById('accuracy-detail').textContent =
+        `${correct} acerto${correct !== 1 ? 's' : ''} de ${total} predição${total !== 1 ? 'ões' : ''}`;
+      document.getElementById('accuracy-bar').style.width =
+        pct !== null ? `${pct}%` : '0%';
+    }
+
+    function updateHistoryUI() {
+      const el = document.getElementById('history-list');
+      if (predHistory.length === 0) {
+        el.innerHTML = '<span class="history-empty">Nenhuma predição ainda.</span>';
+        return;
+      }
+      el.innerHTML = predHistory.slice().reverse().map((h, idx) => {
+        const n = predHistory.length - idx;
+        const realLabel = CLASS_LABELS[REAL_TO_CLASS[h.real]] || h.real;
+        return `
+          <div class="history-item">
+            <span class="h-num">#${n}</span>
+            <span class="h-dot ${h.correct ? 'correct' : 'wrong'}"></span>
+            <span class="h-pred">${h.pred}</span>
+            ${!h.correct ? `<span class="h-real">→ ${realLabel}</span>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    function showAIResult(aiClassName, aiClassId, realState) {
+      const expectedId = REAL_TO_CLASS[realState];
+      const correct = aiClassId === expectedId;
+
+      aiStats.total++;
+      if (correct) aiStats.correct++;
+
+      predHistory.push({ pred: aiClassName, real: realState, correct });
+      if (predHistory.length > MAX_HISTORY) predHistory.shift();
+
+      document.getElementById('ai-class').textContent = aiClassName;
+      document.getElementById('real-state').textContent =
+        CLASS_LABELS[expectedId] || realState;
+
+      const verdict = document.getElementById('ai-verdict');
+      if (correct) {
+        verdict.textContent = '✓ Acerto';
+        verdict.className = 'ai-verdict correct';
+      } else {
+        verdict.textContent = `✗ Erro — esperado: "${CLASS_LABELS[expectedId]}"`;
+        verdict.className = 'ai-verdict wrong';
+      }
+
+      updateAccuracyUI();
+      updateHistoryUI();
+      return correct;
+    }
+
+    function showGameResult(realState, aiWasWrong) {
+      const el = document.getElementById('game-result');
+      el.style.display = 'block';
+
+      if (realState === 'x_vence') {
+        el.textContent = '🎉 Você venceu!';
+        el.className = 'win';
+      } else if (realState === 'o_vence') {
+        el.textContent = '💻 Computador venceu!';
+        el.className = 'lose';
+      } else {
+        el.textContent = '🤝 Empate!';
+        el.className = 'draw';
+      }
+
+      if (aiWasWrong) {
+        el.textContent += ' (IA errou ao classificar o fim de jogo)';
+        el.className = 'ai-error';
+      }
+
+      document.getElementById('turn-label').textContent = 'Fim de jogo';
+    }
+
+    // ── API calls ───────────────────────────────────────────────────────
+    async function apiClassify(b) {
+      const res = await fetch('/api/classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ board: b })
+      });
+      return res.json();
+    }
+
+    async function apiComputerMove(b) {
+      const res = await fetch('/api/computer_move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ board: b })
+      });
+      return res.json();
+    }
+
+    // ── Fluxo de jogo ───────────────────────────────────────────────────
+
+    // Chamado após qualquer jogada (humano ou computador)
+    async function afterMove() {
+      renderBoard();
+      document.getElementById('turn-label').textContent = 'IA classificando...';
+
+      const realState = getRealState(board);
+      const { class_id, class_name } = await apiClassify(board);
+      const aiCorrect = showAIResult(class_name, class_id, realState);
+
+      // Regras do enunciado:
+      // • Encerra o jogo quando a IA não detectar o fim de jogo (mas o jogo acabou)
+      // • Continua o jogo quando a IA detectar fim incorretamente (mas o jogo continua)
+      // → O fluxo é controlado pelo estado REAL, e o erro da IA é registrado.
+
+      if (isTerminal(realState)) {
+        gameActive = false;
+        waitingForHuman = false;
+        document.getElementById('btn-next').style.display = 'none';
+        renderBoard();
+        showGameResult(realState, !aiCorrect);
+        return;
+      }
+
+      // Jogo continua
+      if (waitingForHuman === false) {
+        // Acabou de jogar O → volta para humano
+        waitingForHuman = true;
+        document.getElementById('turn-label').textContent = 'Sua vez (X)';
+        document.getElementById('btn-next').style.display = 'none';
+        renderBoard();
+      } else {
+        // Acabou de jogar X → aguarda clique para computador jogar
+        waitingForHuman = false;
+        document.getElementById('turn-label').textContent = 'Vez do Computador (O)';
+        document.getElementById('btn-next').style.display = 'block';
+        renderBoard();
+      }
+    }
+
+    async function humanMove(index) {
+      if (!gameActive || !waitingForHuman || board[index] !== 0) return;
+      board[index] = 1;
+      lastComputerMove = -1;
+      await afterMove();
+    }
+
+    async function computerTurn() {
+      if (!gameActive) return;
+      document.getElementById('btn-next').style.display = 'none';
+      const { move } = await apiComputerMove(board);
+      if (move === -1) return;
+      board[move] = 2;
+      lastComputerMove = move;
+      await afterMove();
+    }
+
+    function restartGame() {
+      board = Array(9).fill(0);
+      gameActive = true;
+      waitingForHuman = true;
+      lastComputerMove = -1;
+      predHistory.length = 0;
+
+      document.getElementById('game-result').style.display = 'none';
+      document.getElementById('btn-next').style.display = 'none';
+      document.getElementById('ai-class').textContent = '—';
+      document.getElementById('ai-verdict').textContent = 'aguardando jogada...';
+      document.getElementById('ai-verdict').className = 'ai-verdict pending';
+      document.getElementById('real-state').textContent = 'Início do jogo';
+      document.getElementById('turn-label').textContent = 'Sua vez (X)';
+      updateHistoryUI();
+
+      renderBoard();
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────
+    restartGame();
+  </script>
+</body>
+</html>
