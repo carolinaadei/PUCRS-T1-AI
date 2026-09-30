@@ -3,7 +3,7 @@
 **Disciplina:** Inteligência Artificial  
 **Algoritmo:** Multi-Layer Perceptron (MLP)  
 **Problema:** Classificação multiclasse do estado de um tabuleiro de Jogo da Velha 3×3  
-**Arquivo principal:** `Parte4/algoritmoMLP.py`
+**Arquivo principal:** `models/mlp.py`
 
 ---
 
@@ -88,9 +88,9 @@ Não foi necessário aplicar técnicas de balanceamento (como SMOTE ou *class_we
 |---|---|---|
 | Treino | 489 amostras | ~97–98 por classe |
 | Validação | 163 amostras | ~32–33 por classe |
-| Teste | 164 amostras | 40 por classe (exceto Classe A: 4) |
+| Teste | 164 amostras | 40 por classe (exceto Empate: 4) |
 
-> **Observação:** A Classe A apresentou apenas **4 amostras** no conjunto de teste, o que torna suas métricas menos representativas estatisticamente.
+> **Observação:** A classe **Empate** apresentou apenas **4 amostras** no conjunto de teste, o que torna suas métricas menos representativas estatisticamente. A causa está na construção do dataset: após a deduplicação sobraram apenas 16 tabuleiros de empate distintos, contra as 200 amostras das demais classes.
 
 ### Alterações nos Dados
 
@@ -180,11 +180,11 @@ As métricas abaixo foram obtidas **exclusivamente no conjunto de teste** (`test
 
 | Classe | Precision | Recall | F1-score | Support |
 |---|---|---|---|---|
-| Classe A | 1,00 | 0,75 | 0,86 | 4 |
-| Classe B | 0,91 | 0,97 | 0,94 | 40 |
-| Classe C | 0,65 | 0,65 | 0,65 | 40 |
-| Classe D | 0,79 | 0,78 | 0,78 | 40 |
-| Classe E | 0,87 | 0,85 | 0,86 | 40 |
+| Empate | 1,00 | 0,75 | 0,86 | 4 |
+| O vence | 0,91 | 0,97 | 0,94 | 40 |
+| Possibilidade de Fim de Jogo | 0,65 | 0,65 | 0,65 | 40 |
+| Tem jogo | 0,79 | 0,78 | 0,78 | 40 |
+| X vence | 0,87 | 0,85 | 0,86 | 40 |
 | **Accuracy** | | | **0,81** | **164** |
 | Macro avg | 0,84 | 0,80 | 0,82 | 164 |
 | Weighted avg | 0,81 | 0,81 | 0,81 | 164 |
@@ -200,12 +200,12 @@ As métricas abaixo foram obtidas **exclusivamente no conjunto de teste** (`test
 
 ### Matriz de Confusão
 
-A imagem `matriz_confusao_mlp.png` (gerada na raiz do projeto) exibe visualmente os acertos e erros por classe:
+A imagem `reports/figures/mlp_bruta_confusao.png` exibe visualmente os acertos e erros por classe:
 
 - **Diagonal principal:** predições corretas.
 - **Fora da diagonal:** confusões entre classes — os valores mais altos indicam onde o modelo mais erra.
 
-> Para visualizar: abra o arquivo `matriz_confusao_mlp.png` na raiz do projeto.
+> Para visualizar: abra o arquivo `reports/figures/mlp_bruta_confusao.png`.
 
 ---
 
@@ -217,11 +217,11 @@ A imagem `matriz_confusao_mlp.png` (gerada na raiz do projeto) exibe visualmente
 
 ### Análise por Classe
 
-- **Classe B (F1 = 0,94):** melhor desempenho. Provavelmente a classe com padrões mais distintivos no tabuleiro, o que facilita a separação.
-- **Classe E (F1 = 0,86):** bom desempenho. O modelo reconhece bem os padrões desta condição.
-- **Classe A (F1 = 0,86):** resultado aparentemente bom, mas deve ser interpretado com cautela — **apenas 4 amostras** no teste é insuficiente para uma avaliação estatisticamente confiável. Um único erro já impacta significativamente o Recall (que ficou em 0,75).
-- **Classe D (F1 = 0,78):** desempenho razoável. Há alguma confusão com outras classes, provavelmente por similaridade estrutural nos tabuleiros.
-- **Classe C (F1 = 0,65):** **classe mais difícil.** Tanto Precision quanto Recall iguais a 0,65 indicam confusão sistemática — o modelo erra tanto ao classificar outras classes como C quanto ao perder exemplos reais de C.
+- **O vence (F1 = 0,94):** melhor desempenho. Provavelmente a classe com padrões mais distintivos no tabuleiro, o que facilita a separação.
+- **X vence (F1 = 0,86):** bom desempenho. O modelo reconhece bem os padrões desta condição.
+- **Empate (F1 = 0,86):** resultado aparentemente bom, mas deve ser interpretado com cautela — **apenas 4 amostras** no teste é insuficiente para uma avaliação estatisticamente confiável. Um único erro já impacta significativamente o Recall (que ficou em 0,75).
+- **Tem jogo (F1 = 0,78):** desempenho razoável. Há alguma confusão com outras classes, provavelmente por similaridade estrutural nos tabuleiros.
+- **Possibilidade de Fim de Jogo (F1 = 0,65):** **classe mais difícil.** Tanto Precision quanto Recall iguais a 0,65 indicam confusão sistemática — o modelo erra tanto ao rotular outras classes como esta quanto ao deixar passar exemplos que realmente pertencem a ela.
 
 ### Overfitting?
 
@@ -234,7 +234,9 @@ Contudo, como o dataset é relativamente pequeno (~816 amostras totais), não é
 
 ### Onde Teve Dificuldade?
 
-A **Classe C** foi consistentemente a mais difícil. Uma explicação provável é que essa classe representa um estado de transição ou ambíguo no tabuleiro, cujos padrões de posições se sobrepõem parcialmente com os das demais classes. Sem conhecer o significado exato de cada classe (que deve ser definido pelo grupo), é difícil confirmar, mas é uma hipótese plausível para classes como "Possibilidade de Fim de Jogo" ou "Empate".
+A classe **Possibilidade de Fim de Jogo** foi consistentemente a mais difícil, e isso é esperado: ela é a única definida por uma condição que não se lê diretamente das casas do tabuleiro, mas de uma contagem sobre elas — existe alguma linha com duas marcas do mesmo jogador e a terceira casa vazia. Na abordagem *bruta* (one-hot das 9 casas) o modelo precisa aprender essa regra a partir das 27 colunas de entrada, e ela se sobrepõe geometricamente a "Tem jogo".
+
+É exatamente essa a hipótese que a **abordagem derivada** testa: ao entregar `linhas_2x` e `linhas_2o` prontas como features, a condição passa a ser explícita na entrada. Ver `models/mlp.py --abordagem derivada` e a comparação em `reports/metrics/comparacao_final.csv`.
 
 ### Comparação com Expectativas
 
@@ -267,11 +269,11 @@ RELATÓRIO DE CLASSIFICAÇÃO — CONJUNTO DE TESTE
 ============================================================
               precision    recall  f1-score   support
 
-    Classe A       1.00      0.75      0.86         4
-    Classe B       0.91      0.97      0.94        40
-    Classe C       0.65      0.65      0.65        40
-    Classe D       0.79      0.78      0.78        40
-    Classe E       0.87      0.85      0.86        40
+    Empate       1.00      0.75      0.86         4
+    O vence       0.91      0.97      0.94        40
+    Possibilidade de Fim de Jogo       0.65      0.65      0.65        40
+    Tem jogo       0.79      0.78      0.78        40
+    X vence       0.87      0.85      0.86        40
 
     accuracy                           0.81       164
    macro avg       0.84      0.80      0.82       164
@@ -317,50 +319,43 @@ Camada de Saída:      5 neurônios  (softmax → probabilidade por classe)
 
 ### Matriz de Confusão
 
-> Ver arquivo `matriz_confusao_mlp.png` na raiz do projeto (`TrabIA/`).
+> Ver arquivo `reports/figures/mlp_bruta_confusao.png`.
 
 ---
 
 ## 8. Código Organizado e Comentado
 
-O script `Parte4/algoritmoMLP.py` está estruturado em **5 seções independentes**, cada uma encapsulada em uma função com docstring completa:
+O script deixou de carregar dados, pré-processar e avaliar por conta própria: após a reorganização do projeto essas etapas passaram a ser compartilhadas pelos cinco algoritmos, no pacote `ttt/`. O que sobra em `models/mlp.py` é só o que é específico do MLP:
 
-| Seção | Função | Responsabilidade |
-|---|---|---|
-| 0 | — (constantes) | Caminhos, mapeamento de classes e grid de hiperparâmetros |
-| 1 | `carregar_dados()` | Leitura dos CSVs e separação X / y |
-| 2 | `preprocessar_features()` | Aplicação do OneHotEncoder |
-| 3 | `buscar_melhores_hiperparametros()` | GridSearchCV com PredefinedSplit |
-| 4 | `avaliar_modelo()` | Predição no teste, relatório e matriz de confusão |
-| 5 | `main()` | Orquestração do pipeline completo |
+| Elemento | Responsabilidade |
+|---|---|
+| `NOME` | Rótulo do algoritmo nos relatórios e nomes de arquivo |
+| `PARAM_GRID` | Grade de hiperparâmetros a explorar |
+| `criar_modelo()` | Instancia o `MLPClassifier` com `early_stopping` |
+
+O restante vem do pacote compartilhado:
+
+| Módulo | Responsabilidade |
+|---|---|
+| `ttt/config.py` | Caminhos, `CLASS_MAP` e semente aleatória |
+| `ttt/dataset.py` | Leitura dos três CSVs e montagem do `PredefinedSplit` |
+| `ttt/preprocessing.py` | As duas abordagens de pré-processamento |
+| `ttt/experiment.py` | GridSearchCV, retreino e avaliação final no teste |
+| `ttt/evaluation.py` | Métricas, matriz de confusão e registro dos resultados |
 
 ### Como Executar
 
 ```bash
-# Com o Python do MSYS2 (configuração deste projeto)
-set PYTHONUNBUFFERED=1
-C:\msys64\ucrt64\bin\python.exe -u Parte4\algoritmoMLP.py
+pip install -r requirements.txt
+
+python models/mlp.py                       # roda as duas abordagens
+python models/mlp.py --abordagem bruta     # apenas uma delas
 ```
 
 ### Dependências
 
-```
-scikit-learn >= 1.6
-pandas       >= 2.2
-matplotlib   >= 3.10
-numpy        >= 2.2
-```
-
-Instalação via MSYS2 (ambiente deste projeto):
-
-```bash
-C:\msys64\usr\bin\pacman.exe -S --noconfirm --needed \
-  mingw-w64-ucrt-x86_64-python-scikit-learn \
-  mingw-w64-ucrt-x86_64-python-pandas \
-  mingw-w64-ucrt-x86_64-python-matplotlib \
-  mingw-w64-ucrt-x86_64-python-numpy
-```
+Declaradas em `requirements.txt`, na raiz do projeto.
 
 ---
 
-*Documentação gerada com base na execução bem-sucedida de `algoritmoMLP.py` em 04/05/2026.*
+*Documentação gerada com base na execução bem-sucedida de `models/mlp.py` em 04/05/2026.*

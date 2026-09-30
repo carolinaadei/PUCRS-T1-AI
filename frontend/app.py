@@ -1,98 +1,154 @@
-from flask import Flask, jsonify, request, render_template
-import pandas as pd
-from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import GridSearchCV, PredefinedSplit
-import numpy as np
+"""
+Item 6 do enunciado — front end mínimo para interagir com o classificador.
+
+Um humano joga de X contra um computador que joga de O aleatoriamente. A cada
+jogada o tabuleiro é enviado ao classificador, que informa o estado do jogo; o
+front end compara essa predição com o estado real e contabiliza a acurácia da
+IA durante a interação.
+
+O servidor **carrega** o melhor modelo já treinado em `artifacts/`, em vez de
+treinar na inicialização como antes. Treinar a cada boot deixava a subida lenta
+e, pior, fazia o front end usar um modelo diferente do que foi avaliado no
+relatório.
+
+Execução:
+    python models/comparar.py     # treina e escolhe o melhor (uma vez)
+    python frontend/app.py
+"""
+
 import random
-import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import joblib
+import pandas as pd
+from flask import Flask, jsonify, render_template, request
+
+from ttt import evaluation, game_rules
+from ttt.config import (
+    ARTIFACTS_DIR,
+    CLASS_MAP,
+    FEATURE_COLS,
+    JOGADOR_O,
+    VAZIO,
+)
 
 app = Flask(__name__)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-FEATURE_COLS = ["tl", "tm", "tr", "ml", "mm", "mr", "bl", "bm", "br"]
-TARGET_COL = "classe_id"
-
-treino = pd.read_csv(os.path.join(BASE_DIR, 'treino.csv'))
-validacao = pd.read_csv(os.path.join(BASE_DIR, 'validacao.csv'))
-
-X_treino = treino[FEATURE_COLS]
-y_treino = treino[TARGET_COL].to_numpy()
-
-X_val = validacao[FEATURE_COLS]
-y_val = validacao[TARGET_COL].to_numpy()
-
-encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-X_treino_enc = encoder.fit_transform(X_treino)
-X_val_enc = encoder.transform(X_val)
-
-X_treino_val = np.vstack([X_treino_enc, X_val_enc])
-y_treino_val = np.concatenate([y_treino, y_val])
-
-test_fold = np.concatenate([
-    np.full(len(X_treino_enc), -1, dtype=int),
-    np.zeros(len(X_val_enc), dtype=int),
-])
-
-PARAM_GRID = {
-    "hidden_layer_sizes": [(10,), (50,), (10, 10), (50, 25)],
-    "activation": ["relu", "tanh"],
-    "learning_rate_init": [0.001, 0.01],
-}
-
-mlp_base = MLPClassifier(
-    max_iter=2000,
-    early_stopping=True,
-    n_iter_no_change=20,
-    random_state=42,
-)
-
-print("[INFO] Treinando modelo MLP com GridSearchCV...", flush=True)
-grid_search = GridSearchCV(
-    estimator=mlp_base,
-    param_grid=PARAM_GRID,
-    cv=PredefinedSplit(test_fold),
-    scoring='accuracy',
-    n_jobs=1,
-    verbose=0,
-)
-grid_search.fit(X_treino_val, y_treino_val)
-model = grid_search.best_estimator_
-
-CLASS_NAMES = {
-    0: 'Empate',
-    1: 'X Vence',
-    2: 'Possibilidade de Fim de Jogo',
-    3: 'Tem Jogo',
-    4: 'O Vence'
-}
+# --------------------------------------------------------------------------
+# Carregamento do modelo
+# --------------------------------------------------------------------------
 
 
-@app.route('/')
+def _melhor_artefato() -> Path | None:
+    """
+    Escolhe o artefato do algoritmo com melhor acurácia de teste registrada.
+
+    Se nada foi registrado ainda, cai para qualquer .joblib disponível — assim
+    o front end sobe mesmo antes de a comparação completa ter sido rodada.
+    """
+    resultados = evaluation.carregar_resultados()
+
+    if not resultados.empty:
+        for _, linha in resultados.sort_values("acuracia_teste", ascending=False).iterrows():
+            nome = f"{linha['algoritmo'].lower().replace(' ', '_')}_{linha['abordagem']}.joblib"
+            caminho = ARTIFACTS_DIR / nome
+            if caminho.exists():
+                return caminho
+
+    disponiveis = sorted(ARTIFACTS_DIR.glob("*.joblib"))
+    return disponiveis[0] if disponiveis else None
+
+
+def carregar_modelo():
+    """Carrega o pipeline treinado (pré-processamento + classificador)."""
+    caminho = _melhor_artefato()
+    if caminho is None:
+        raise FileNotFoundError(
+            "Nenhum modelo treinado em artifacts/.\n"
+            "Rode primeiro:  python models/comparar.py"
+        )
+
+    print(f"[INFO] Modelo carregado: {caminho.name}", flush=True)
+    return joblib.load(caminho), caminho.stem
+
+
+MODELO, MODELO_NOME = carregar_modelo()
+
+
+# --------------------------------------------------------------------------
+# Rotas
+# --------------------------------------------------------------------------
+
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    # CLASS_MAP vai para o template para que o front end nunca tenha a sua
+    # própria cópia dos rótulos — era exatamente essa duplicata que estava
+    # divergindo e invertendo "X vence" com "O vence".
+    return render_template(
+        "index.html",
+        class_map=CLASS_MAP,
+        modelo_nome=MODELO_NOME,
+    )
 
 
-@app.route('/api/classify', methods=['POST'])
+@app.route("/api/classify", methods=["POST"])
 def classify():
-    data = request.get_json()
-    board = data['board']
+    """Predição da IA para o tabuleiro recebido."""
+    board = _ler_tabuleiro(request.get_json())
+
     X = pd.DataFrame([board], columns=FEATURE_COLS)
-    X_enc = encoder.transform(X)
-    pred = int(model.predict(X_enc)[0])
-    return jsonify({'class_id': pred, 'class_name': CLASS_NAMES.get(pred, f'Classe {pred}')})
+    pred = int(MODELO.predict(X)[0])
+
+    # Estado real calculado pelas regras do jogo, para o front end contabilizar
+    # o acerto sem precisar reimplementar a lógica.
+    real = game_rules.classificar_id(board)
+
+    return jsonify({
+        "class_id": pred,
+        "class_name": CLASS_MAP.get(pred, f"Classe {pred}"),
+        "real_id": real,
+        "real_name": CLASS_MAP[real],
+        "correto": pred == real,
+        "fim_de_jogo": game_rules.fim_de_jogo(board),
+    })
 
 
-@app.route('/api/computer_move', methods=['POST'])
+@app.route("/api/computer_move", methods=["POST"])
 def computer_move():
-    data = request.get_json()
-    board = data['board']
-    empty = [i for i, v in enumerate(board) if v == 0]
-    move = random.choice(empty) if empty else -1
-    return jsonify({'move': move})
+    """Jogada do computador (O), escolhida aleatoriamente entre as casas vazias."""
+    board = _ler_tabuleiro(request.get_json())
+    vazias = [i for i, v in enumerate(board) if v == VAZIO]
+
+    return jsonify({"move": random.choice(vazias) if vazias else -1, "jogador": JOGADOR_O})
 
 
-if __name__ == '__main__':
-    print(f"[INFO] Modelo MLP treinado. Melhores params: {grid_search.best_params_}. Iniciando servidor...", flush=True)
+@app.route("/api/status")
+def status():
+    """Informa qual modelo está servindo as predições."""
+    return jsonify({"modelo": MODELO_NOME, "classes": CLASS_MAP})
+
+
+def _ler_tabuleiro(payload: dict | None) -> list[int]:
+    """Valida o tabuleiro recebido: 9 casas com valores 0, 1 ou 2."""
+    board = (payload or {}).get("board")
+
+    if not isinstance(board, list) or len(board) != 9:
+        raise ValueError("'board' deve ser uma lista de 9 posições")
+    if any(v not in (0, 1, 2) for v in board):
+        raise ValueError("Casas devem ser 0 (vazio), 1 (O) ou 2 (X)")
+
+    return [int(v) for v in board]
+
+
+@app.errorhandler(ValueError)
+def _erro_de_entrada(erro: ValueError):
+    return jsonify({"erro": str(erro)}), 400
+
+
+if __name__ == "__main__":
     app.run(debug=True, port=5001)

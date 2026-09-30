@@ -1,5 +1,13 @@
 #  Algoritmo de Escolha — SVM (Support Vector Machine)
 
+> ⚠️ **Números desatualizados.** As métricas deste documento foram obtidas antes da
+> reorganização do projeto, quando o script usava `cv=5` sobre o conjunto de treino e
+> ignorava o conjunto de validação físico. O protocolo agora é o mesmo para todos os
+> algoritmos (`ttt/experiment.py`): GridSearchCV com `PredefinedSplit` sobre a validação,
+> e o teste tocado uma única vez. Rode `python models/svm.py` e atualize as tabelas
+> abaixo com os valores de `reports/metrics/resultados.csv`.
+
+
 ## Visão Geral
 
 Este módulo do projeto tem como objetivo implementar e avaliar um algoritmo de Inteligência Artificial para classificação de estados do jogo da velha.
@@ -206,7 +214,7 @@ O código foi implementado em Python utilizando a biblioteca ⁠ scikit-learn�
 O código está organizado e comentado no arquivo:
 
 
-algoitmoEscolha.py
+`models/svm.py`
 
 
 ---

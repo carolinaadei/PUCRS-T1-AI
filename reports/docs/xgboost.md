@@ -1,5 +1,13 @@
 # XGBoost - Documentação
 
+> ⚠️ **Números inválidos — reexecutar.** A versão anterior deste script configurava
+> `objective='binary:logistic'`, que é para problemas de **duas** classes, enquanto o
+> nosso tem **cinco**. As métricas reportadas abaixo não descrevem o comportamento do
+> modelo no problema real. O script foi corrigido para `multi:softprob`; rode
+> `python models/xgboost_clf.py` e atualize as tabelas com os valores de
+> `reports/metrics/resultados.csv`.
+
+
 ## 1. Explicação do algoritmo
 
 ### Como funciona
@@ -75,9 +83,9 @@ Eu senti que as maiores dificuldades ficaram nas classes que se confundem mais e
 Os resultados ficaram dentro do que eu esperava para um baseline com XGBoost e pré-processamento simples. Eu acredito que dá para melhorar com mais ajustes de parâmetros e, se necessário, balanceamento.
 
 ## 7. Prints/gráficos
-- Gráfico de métricas salvo em: xgboost_metricas.png
-- Matriz de confusão salva em: xgboost_matriz_confusao.png
+- Gráfico de métricas salvo em: `reports/figures/xgboost_metricas.png`
+- Matriz de confusão salva em: `reports/figures/xgboost_bruta_confusao.png`
 
 ## 8. Código organizado e comentado
-- Arquivo principal: xboostAlgorithm.py
+- Arquivo principal: `models/xgboost_clf.py`
 - O fluxo está separado por etapas (carregamento, pré-processamento, treino, avaliação e gráficos).
