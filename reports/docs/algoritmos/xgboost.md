@@ -105,56 +105,84 @@ São 3 × 2 × 3 × 2 = **36 combinações**.
 
 ## 4. Resultados
 
-> ⚠️ **Números inválidos — reexecutar.**
->
-> A versão anterior deste script configurava `objective='binary:logistic'`, que é
-> o objetivo para problemas de **duas** classes, enquanto o nosso tem **cinco**.
-> As métricas registradas abaixo não descrevem o comportamento do modelo no
-> problema real e **não devem ser usadas no relatório**.
->
-> O script foi corrigido para `multi:softprob`. Rode
-> `python models/xgboost_clf.py` e substitua esta seção pelos valores de
-> [reports/metrics/resultados.csv](../../metrics/).
+**O XGBoost venceu a comparação do item 5**, nas duas abordagens.
 
-**Registro da execução inválida, para rastreabilidade**
+| Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `bruta` | 87,1% | 88,4% | 0,883 | 0,884 | **0,883** | 0,1167 | 6,08 |
+| `derivada` | 85,9% | **89,0%** | 0,880 | 0,890 | 0,880 | 0,0708 | 4,29 |
 
-| Parâmetro | Valor |
+**Melhores hiperparâmetros**
+
+| Abordagem | Configuração |
 |---|---|
-| `learning_rate` | 0,2 |
-| `n_estimators` | 200 |
-| `max_depth` | 3 |
-| `gamma` | 0 |
+| `bruta` | `learning_rate=0,2` · `max_depth=5` · `n_estimators=100` |
+| `derivada` | `learning_rate=0,05` · `max_depth=3` · `n_estimators=100` |
 
-| Métrica | Valor |
-|---|---|
-| Acurácia | 0,7378 |
-| Precision (weighted) | 0,7333 |
-| Recall (weighted) | 0,7378 |
-| F1 (weighted) | 0,7340 |
+### Análise
 
-Aquela execução também usava `cv=3` sobre o treino, ignorando o conjunto de
-validação físico — um segundo desvio do item 4, independente do objetivo errado.
+**89,0% no teste é o melhor resultado do trabalho**, e é o modelo servido pelo
+[front end](../05-frontend.md). Mas a diferença para a abordagem bruta é de
+**uma única amostra** (146 contra 145 acertos em 164), e o F1 é até ligeiramente
+melhor na bruta — então não há vencedor claro entre as duas.
 
-Figuras daquela execução:
-[xgboost_metricas.png](../../figures/xgboost_metricas.png) ·
-[xgboost_matriz_confusao.png](../../figures/xgboost_matriz_confusao.png)
+**A configuração derivada é a mais conservadora da grade:** `max_depth=3`, a
+menor profundidade testada, e `learning_rate=0,05`, a menor taxa. É o
+comportamento clássico de boosting bem ajustado — muitas árvores rasas somadas
+com passos pequenos — e reforça que o resultado não vem de capacidade excessiva.
 
-### Tabela a preencher
+Na bruta, por contraste, o modelo precisou de árvores mais profundas
+(`max_depth=5`) e passos maiores (`learning_rate=0,2`) para chegar quase ao
+mesmo lugar. Mesma leitura dos outros algoritmos: sem as features prontas, é
+preciso mais capacidade.
 
-| Abordagem | Acurácia val. | Acurácia teste | Precision | Recall | F1 | Treino (s) |
-|---|---:|---:|---:|---:|---:|---:|
-| `bruta` | | | | | | |
-| `derivada` | | | | | | |
+**`n_estimators=100` venceu nas duas**, e não 200. Com apenas 489 amostras de
+treino, 100 árvores já saturam o que há para aprender.
 
-### O que verificar ao rodar
+### Overfitting?
 
-1. **Se o resultado sobe em relação a 0,7378.** É a evidência de que o objetivo
-   errado estava de fato prejudicando o modelo.
-2. **A `max_depth` escolhida.** Profundidade 3 seria o comportamento clássico de
-   boosting; se a validação escolher 7, é sinal de que o problema exige árvores
-   individuais mais expressivas.
-3. **O custo de treino.** O XGBoost deve ser o mais caro do trabalho por larga
-   margem — são até 200 árvores por configuração, contra um único modelo nos
-   demais. Vale registrar isso na discussão de custo do item 3.
-4. **A classe Empate.** Com 9 amostras de treino, é provável que as árvores
-   simplesmente não criem divisões para ela.
+Não há sinal em nenhuma das duas abordagens: a acurácia de teste é **superior**
+à de validação nas duas (85,9% → 89,0% na derivada, 87,1% → 88,4% na bruta),
+quando o padrão de um modelo que decorou seria o contrário.
+
+Isso é consistente com a regularização embutida do XGBoost e com os valores
+conservadores que a validação escolheu.
+
+### Custo
+
+| | `bruta` | `derivada` |
+|---|---:|---:|
+| Treino | 0,1167 s | **0,0708 s** (−39%) |
+| Predição | 6,08 ms | **4,29 ms** (−29%) |
+
+O XGBoost é o **segundo mais caro** para treinar, atrás do MLP — são 100 árvores
+por configuração, contra um único modelo nos demais. Ainda assim, 0,07 s é
+irrelevante na prática, e os 4,29 ms de predição não se notam no front end.
+
+### O ponto cego da abordagem derivada
+
+Com 89,0% de acurácia, a configuração vencedora **erra todos os 4 empates do
+conjunto de teste**, sempre classificando-os como "X vence". A causa é uma
+lacuna nas features derivadas — nenhuma das 15 colunas codifica "três em linha".
+A análise completa, com as duas matrizes de confusão lado a lado, está em
+[04-resultados.md §4.5](../04-resultados.md).
+
+### A classe difícil
+
+O F1 de "Possibilidade de Fim de Jogo" subiu de **0,76 para 0,90** — o melhor
+resultado dos cinco algoritmos nessa classe.
+
+### Sobre os números inválidos anteriores
+
+A versão anterior do script usava `objective='binary:logistic'`, para **duas**
+classes, num problema de **cinco**, e `cv=3` sobre o treino, ignorando o
+conjunto de validação físico. Aquela execução registrou 0,7378 de acurácia.
+
+Com o objetivo corrigido para `multi:softprob` e o protocolo unificado, o
+resultado sobe para **0,8902** — **mais 15 pontos**, confirmando que o objetivo
+errado estava de fato prejudicando o modelo. As figuras daquela execução
+([xgboost_metricas.png](../../figures/xgboost_metricas.png),
+[xgboost_matriz_confusao.png](../../figures/xgboost_matriz_confusao.png)) ficam
+mantidas só para rastreabilidade e **não devem ser usadas no relatório**.
+
+> Comparação com os demais algoritmos: [04-resultados.md](../04-resultados.md).

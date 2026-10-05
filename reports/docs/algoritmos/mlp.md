@@ -59,8 +59,8 @@ As camadas de entrada e saída são determinadas pelo problema:
 | Entrada | 27 neurônios (one-hot das 9 casas) | 15 neurônios (features extraídas) |
 | Saída | 5 neurônios (uma por classe) | 5 neurônios |
 
-Ou seja, a topologia vencedora na execução registrada abaixo foi
-**27 → 50 → 25 → 5**.
+A topologia `(50, 25)` venceu nas duas abordagens, o que dá
+**27 → 50 → 25 → 5** na bruta e **15 → 50 → 25 → 5** na derivada.
 
 O MLP é sensível à escala, então as duas abordagens de
 [02-preprocessamento.md](../02-preprocessamento.md) já entregam entradas
@@ -113,83 +113,76 @@ São 4 × 2 × 2 = **16 combinações**.
 
 ## 4. Resultados
 
-Execução registrada na abordagem `bruta` (one-hot, `PredefinedSplit`):
+| Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `bruta` | 74,9% | 81,1% | 0,811 | 0,811 | 0,810 | 0,1989 | 4,54 |
+| `derivada` | 82,2% | **83,5%** | 0,815 | 0,835 | **0,825** | 0,0932 | 2,97 |
 
-**Melhor configuração**
+**Melhores hiperparâmetros**
 
-```python
-{'activation': 'relu', 'hidden_layer_sizes': (50, 25), 'learning_rate_init': 0.01}
+| Abordagem | Topologia | Ativação | Taxa inicial |
+|---|---|---|---|
+| `bruta` | (50, 25) | relu | 0,01 |
+| `derivada` | (50, 25) | tanh | 0,01 |
+
+### Topologia escolhida (derivada)
+
+```
+15 features  →  50 neurônios (tanh)  →  25 neurônios (tanh)  →  5 classes (softmax)
 ```
 
 | | |
 |---|---|
-| Acurácia na validação | 0,7485 |
-| **Acurácia no teste** | **0,8100** |
-| F1 macro | 0,82 |
+| Otimizador | Adam, `learning_rate_init = 0,01` |
+| Parada | `early_stopping`, 20 épocas sem melhora |
+| Limite | `max_iter = 2000` |
 
-**Por classe, no conjunto de teste**
-
-| Classe | Precision | Recall | F1 | Suporte |
-|---|---:|---:|---:|---:|
-| Empate | 1,00 | 0,75 | 0,86 | 4 |
-| O vence | 0,91 | 0,97 | 0,94 | 40 |
-| Possibilidade de Fim de Jogo | 0,65 | 0,65 | 0,65 | 40 |
-| Tem jogo | 0,79 | 0,78 | 0,78 | 40 |
-| X vence | 0,87 | 0,85 | 0,86 | 40 |
-
-Matriz de confusão: [mlp_bruta_confusao.png](../../figures/mlp_bruta_confusao.png)
+Na abordagem bruta a topologia é a mesma, com 27 neurônios na entrada em vez de
+15.
 
 ### Análise
 
-**O desempenho foi bom.** 81% num problema de 5 classes, contra 20% do acaso, e
-o melhor resultado entre os algoritmos com números medidos até agora.
+**A topologia `(50, 25)` venceu nas duas abordagens**, confirmando a expectativa
+de que o problema exige mais capacidade que uma camada estreita. A taxa de
+aprendizado 0,01 também venceu nas duas — mais alta que o usual, o que o
+`early_stopping` absorve sem instabilidade.
 
-**"O vence" é a classe mais fácil (F1 = 0,94).** Três em linha de O é um padrão
-geométrico fixo, que aparece em 8 configurações possíveis, e a rede aprende bem
-com 120 exemplos de treino.
+**A ativação mudou: relu na bruta, tanh na derivada.** É coerente com a natureza
+das entradas. Na bruta, o one-hot entrega zeros e uns, e a ReLU lida bem com
+entradas esparsas. Na derivada, o `StandardScaler` entrega valores centrados em
+zero e com sinal, que é exatamente o domínio onde a tanh (também centrada em
+zero, saturando em ±1) se sai melhor.
 
-**"Possibilidade de Fim de Jogo" é a mais difícil (F1 = 0,65),** com precision e
-recall igualmente baixos — o que indica confusão **simétrica**: o modelo tanto
-rotula outras classes como esta quanto deixa passar exemplos que são dela. A
-explicação está em [01-dataset.md](../01-dataset.md): é a única classe definida
-por uma contagem sobre as casas, não pela posição delas, e é a classe com menor
-cobertura no dataset (5,2% dos estados que existem no jogo). Na abordagem bruta
-a rede precisa reconstruir essa regra a partir das 27 colunas de entrada.
+**O MLP é o algoritmo mais caro para treinar: 0,1989 s na bruta**, quase 20× o
+custo da árvore, para um resultado 5 pontos pior que o XGBoost. A abordagem
+derivada corta esse custo pela metade (0,0932 s), porque a rede tem 15 entradas
+em vez de 27 — menos pesos na primeira camada.
 
-**"Empate" com precision 1,00 e recall 0,75 merece cautela.** São 4 amostras no
-teste: o modelo acertou 3 e errou 1, e nenhum falso positivo. O F1 de 0,86 é
-matematicamente correto, mas estatisticamente frágil — não é base para concluir
-que o modelo domina essa classe.
+**Ganho moderado com a derivada (+2,4 pontos),** menor que o da árvore (+31) ou
+do MLP na classe difícil. Faz sentido: a rede já conseguia aproximar a regra de
+"três em linha" a partir do one-hot, então entregá-la pronta ajuda, mas não
+transforma o resultado.
 
 ### Overfitting?
 
-Não há sinal de overfitting severo:
-
-- A acurácia de validação (0,7485) e a de teste (0,81) são compatíveis, e a de
-  teste foi até **superior** — o oposto do padrão de um modelo que decorou.
-- O `early_stopping` atuou durante toda a busca, impedindo que a rede continuasse
-  ajustando depois que a perda estacionou.
-
-Com 816 amostras no total, porém, não dá para descartar completamente. Técnicas
-como *dropout* não estão disponíveis no `MLPClassifier` do scikit-learn e
-exigiriam PyTorch ou Keras.
+Não há sinal nas duas abordagens. A acurácia de teste é **superior** à de
+validação em ambas (74,9% → 81,1% e 82,2% → 83,5%), o oposto do padrão de um
+modelo que decorou. O `early_stopping` atuou durante toda a busca.
 
 ### Contra as expectativas
 
 | Expectativa | Resultado |
 |---|---|
-| Acurácia acima de 70% | superada: 81% |
-| Rede de 2 camadas melhor que 1 | confirmado: `(50, 25)` > `(50,)` > `(10, 10)` > `(10,)` |
-| ReLU e tanh equivalentes | ReLU foi superior |
-| Taxa 0,01 mais instável que 0,001 | não confirmado: 0,01 foi melhor, provavelmente porque o `early_stopping` absorve a oscilação |
+| Acurácia acima de 70% | superada nas duas abordagens |
+| Rede de 2 camadas melhor que 1 | confirmado: `(50, 25)` venceu nas duas |
+| ReLU e tanh equivalentes | depende do pré-processamento: relu na bruta, tanh na derivada |
+| Taxa 0,01 mais instável que 0,001 | não confirmado: 0,01 venceu nas duas |
 
-### Próximo passo
+### A classe difícil
 
-A hipótese sobre "Possibilidade de Fim de Jogo" é testável: na abordagem
-`derivada`, `linhas_2x` e `linhas_2o` entregam a condição pronta. Rodar
-`python models/mlp.py` mede as duas abordagens e mostra se o F1 dessa classe
-sobe.
+O F1 de "Possibilidade de Fim de Jogo" subiu de **0,65 para 0,84** com a
+abordagem derivada — o segundo maior ganho do trabalho, atrás apenas da árvore.
+A hipótese levantada aqui antes da execução se confirmou: entregar `linhas_2x` e
+`linhas_2o` prontas resolve boa parte dessa classe.
 
-> Os números acima são da abordagem `bruta`. Os da abordagem `derivada` e a
-> comparação com os demais algoritmos saem de `python models/comparar.py` —
-> ver [04-resultados.md](../04-resultados.md).
+> Comparação com os demais algoritmos: [04-resultados.md](../04-resultados.md).

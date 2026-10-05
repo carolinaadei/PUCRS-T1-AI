@@ -87,37 +87,62 @@ grade que se lê de forma direta.
 
 ## 4. Resultados
 
-> ⚠️ **Números desatualizados — reexecutar.**
->
-> As métricas abaixo foram obtidas **antes** da reorganização do projeto, sob um
-> protocolo diferente: o script usava `cv=5` sobre o conjunto de treino e
-> **ignorava o conjunto de validação físico**, o que contraria o item 4 do
-> enunciado. O kernel também era escolhido à mão, fora da busca.
->
-> Não são comparáveis com os demais algoritmos. Rode `python models/svm.py` e
-> substitua esta seção pelos valores de
-> [reports/metrics/resultados.csv](../../metrics/).
+| Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `bruta` | 79,1% | **86,6%** | 0,867 | 0,866 | **0,866** | 0,0439 | 9,46 |
+| `derivada` | 82,8% | 86,0% | 0,842 | 0,860 | 0,849 | 0,0142 | 3,99 |
 
-**Configuração apontada como melhor (protocolo antigo)**
+**Melhores hiperparâmetros**
 
-| Parâmetro | Valor |
+| Abordagem | Configuração |
 |---|---|
-| `kernel` | `rbf` |
-| `C` | 10 |
-| `gamma` | `scale` |
+| `bruta` | `kernel=rbf` · `C=10` · `gamma=scale` |
+| `derivada` | `kernel=linear` · `C=0,1` |
 
-| Métrica | Valor aproximado |
-|---|---|
-| Acurácia | ~0,65 |
-| Precision | ~0,65 |
+### Análise
 
-Grade completa daquela execução:
-[reports/metrics/svm_gridsearch.csv](../../metrics/svm_gridsearch.csv) —
-a melhor pontuação registrada ali foi 0,6524, com `C=10` e `gamma=scale`.
+**O SVM é o único algoritmo que preferiu a abordagem bruta** (86,6% contra
+86,0%) — e a diferença é de uma única amostra no teste, então as duas são
+equivalentes na prática. O que interessa aqui não é qual venceu, mas **como** a
+configuração mudou.
 
-Figuras daquela execução:
-[svm_matriz_confusao.png](../../figures/svm_matriz_confusao.png) ·
-[svm_comparacao_modelos.png](../../figures/svm_comparacao_modelos.png)
+**A troca de kernel conta a história toda:**
+
+| | `bruta` | `derivada` |
+|---|---|---|
+| Kernel | `rbf` (fronteiras curvas) | `linear` (um hiperplano) |
+| `C` | 10 (aceita menos erros) | 0,1 (margem larga) |
+
+Na abordagem bruta, o modelo precisa de fronteiras **curvas** e de um `C` alto
+para separar as classes nas 27 colunas de one-hot. Na derivada, as features já
+separam as classes tão bem que **um hiperplano simples basta** — e com `C=0,1`,
+o menor valor da grade, indicando que uma margem larga foi suficiente, sem
+precisar forçar o ajuste ao treino.
+
+> **Isso é evidência direta de que as features derivadas fazem o trabalho que o
+> kernel fazia.** O conhecimento do jogo, codificado em `linhas_2x` e
+> `linhas_2o`, substitui a não linearidade que o RBF tinha que descobrir
+> sozinho.
+
+### Custo
+
+A troca de kernel também derruba o custo:
+
+| | `bruta` | `derivada` |
+|---|---:|---:|
+| Treino | 0,0439 s | **0,0142 s** (−68%) |
+| Predição | 9,46 ms | **3,99 ms** (−58%) |
+
+**O SVM na abordagem bruta tem a predição mais lenta de todas as dez
+configurações (9,46 ms)**, o que é esperado: o kernel RBF exige calcular a
+distância do ponto novo a cada vetor de suporte. Um kernel linear é apenas um
+produto escalar.
+
+### A classe difícil
+
+O F1 de "Possibilidade de Fim de Jogo" subiu de **0,78 para 0,89** — o SVM já
+era o melhor dos cinco nessa classe na abordagem bruta, e seguiu sendo o segundo
+melhor na derivada, atrás do XGBoost (0,90).
 
 ### Correção de uma inconsistência na documentação anterior
 
@@ -125,23 +150,13 @@ A versão anterior deste documento afirmava que o encoding usado era
 `x → 1, o → -1, b → 0`. Isso **não** correspondia ao código: o script aplicava
 `{'x': 2, 'o': 1, 'b': 0}` através de um `.replace()` sobre dados que já estavam
 numéricos — ou seja, a operação não fazia nada. O encoding efetivo era o dos
-CSVs (`0` vazio, `1` O, `2` X), seguido de `StandardScaler`.
+CSVs, seguido de `StandardScaler`.
 
-### Tabela a preencher
+Aquela execução, sob protocolo antigo (`cv=5` sobre o treino, ignorando o
+conjunto de validação físico), registrou ~0,65 de acurácia. Sob o protocolo
+unificado o SVM chega a 86,6% — **mais 21 pontos**, com o mesmo algoritmo. A
+grade daquela execução antiga está em
+[svm_gridsearch.csv](../../metrics/svm_gridsearch.csv), mantida só para
+rastreabilidade.
 
-| Abordagem | Acurácia val. | Acurácia teste | Precision | Recall | F1 | Treino (s) |
-|---|---:|---:|---:|---:|---:|---:|
-| `bruta` | | | | | | |
-| `derivada` | | | | | | |
-
-### O que verificar ao rodar
-
-1. **Qual kernel a validação escolhe agora**, com o one-hot em vez do
-   `StandardScaler` sobre códigos brutos. É possível que o `linear` se torne
-   competitivo, já que o one-hot expande o espaço de 9 para 27 dimensões e
-   separações lineares ficam mais fáceis em dimensão alta.
-2. **O custo de treino entre as abordagens.** A SVM é o algoritmo em que a
-   diferença deve ser mais visível, porque seu custo cresce com o número de
-   features: 27 colunas (bruta) contra 15 (derivada).
-3. **A classe Empate.** Com 9 amostras de treino contra 480 das outras, e sem
-   `class_weight="balanced"`, é provável que a SVM raramente a prediga.
+> Comparação com os demais algoritmos: [04-resultados.md](../04-resultados.md).

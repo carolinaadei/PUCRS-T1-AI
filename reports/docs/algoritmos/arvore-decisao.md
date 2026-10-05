@@ -69,51 +69,69 @@ PARAM_GRID = {
 
 São 5 × 2 × 3 = **30 combinações**.
 
-> **Atenção à classe Empate.** Com `min_samples_leaf=5` e apenas 9 empates no
-> treino, a árvore fica impedida de isolar essa classe em folha própria. É um
-> ponto a observar na matriz de confusão: se Empate desaparecer das predições,
-> é provável que a configuração escolhida tenha `min_samples_leaf` alto.
+> **Sobre a classe Empate.** Com `min_samples_leaf=5` e apenas 9 empates no
+> treino, a árvore ficaria impedida de isolar essa classe em folha própria. Na
+> prática a validação escolheu `min_samples_leaf=1` nas duas abordagens, então
+> essa restrição não chegou a atuar.
 
 ---
 
 ## 4. Resultados
 
-> **Pendente de execução.** Este algoritmo não tinha script próprio antes da
-> reorganização — existia apenas como células exploratórias no notebook de
-> construção do dataset, cujas saídas não foram preservadas. Rode
-> `python models/arvore_decisao.py` e preencha a tabela abaixo com os valores de
-> [reports/metrics/resultados.csv](../../metrics/).
+| Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `bruta` | 57,1% | 54,9% | 0,550 | 0,549 | 0,549 | 0,0084 | 3,01 |
+| `derivada` | 83,4% | **86,0%** | 0,845 | 0,860 | **0,849** | 0,0095 | 2,02 |
 
-| Abordagem | Acurácia val. | Acurácia teste | Precision | Recall | F1 | Treino (s) |
-|---|---:|---:|---:|---:|---:|---:|
-| `bruta` | | | | | | |
-| `derivada` | | | | | | |
+**Melhores hiperparâmetros**
 
-Melhores hiperparâmetros encontrados: _preencher_
+| Abordagem | Configuração |
+|---|---|
+| `bruta` | gini · `max_depth=10` · `min_samples_leaf=1` |
+| `derivada` | entropy · `max_depth=7` · `min_samples_leaf=1` |
 
-Matriz de confusão: `reports/figures/arvore_de_decisao_<abordagem>_confusao.png`
+### Análise — o resultado mais expressivo do trabalho
 
-### O que esperar, e o que verificar
+**Mais 31 pontos de acurácia, só trocando a representação da entrada.** Nenhum
+outro algoritmo chega perto desse ganho, e a explicação é exata.
 
-**A abordagem derivada deve favorecer bastante a árvore.** Na abordagem bruta,
-reconhecer "três em linha" exige que a árvore aprenda a conjunção de três
-condições sobre casas específicas — e precisa reaprender isso para cada uma das
-8 linhas vencedoras, porque não há como generalizar entre elas com cortes por
-casa. Na abordagem derivada, `linhas_2x` e `linhas_2o` respondem isso em uma
-única pergunta.
+Na abordagem **bruta**, a árvore só consegue perguntar sobre casas individuais:
+*"a casa do meio tem X?"*. Para reconhecer "três em linha" ela precisa aprender
+a conjunção de três dessas perguntas — e precisa reaprender isso **oito vezes**,
+uma para cada linha vencedora, porque cortes por casa não generalizam entre
+linhas. Com 489 amostras de treino, não há dado suficiente para montar oito
+sub-árvores dessas, e o resultado é 54,9%: pior que o k-NN, o pior do trabalho.
 
-Vale verificar, ao rodar:
+Na abordagem **derivada**, `linhas_2x` e `linhas_2o` respondem a mesma pergunta
+em **um único corte**. A árvore salta para 86,0% e passa a empatar com o SVM.
 
-1. **A `max_depth` escolhida.** Se a validação escolher `None`, é sinal de que o
-   modelo precisou de muita profundidade — o que, na abordagem bruta, seria
-   consistente com a explicação acima.
-2. **A classe Empate na matriz de confusão**, pelo motivo da seção 3.
-3. **A distância entre acurácia de validação e de teste.** Uma queda grande
-   indica que a árvore decorou.
+### Sinais que confirmam a explicação
+
+**A `max_depth` escolhida caiu de 10 para 7.** Na bruta a validação escolheu
+quase a profundidade máxima da grade — a árvore precisou crescer muito para
+compensar features pobres. Na derivada, menos profundidade basta.
+
+**A bruta tem acurácia de teste (54,9%) *abaixo* da de validação (57,1%)**, e é a
+única configuração das dez em que isso acontece de forma marcada. Combinado com
+`max_depth=10` e `min_samples_leaf=1`, é o retrato de uma árvore que cresceu
+para decorar e não generalizou.
+
+**Na derivada, validação (83,4%) → teste (86,0%) sobe**, o padrão saudável.
+
+### Custo
+
+A árvore é **o algoritmo mais barato do trabalho**: 0,0095 s de treino e 2,02 ms
+de predição na derivada — 7× mais rápida que o XGBoost para treinar, e a mais
+rápida de todas para predizer.
+
+Isso torna a árvore + derivada a escolha mais interessante sob critérios que não
+sejam só acurácia: fica a 3 pontos do vencedor (86,0% contra 89,0%), custa uma
+fração, e é **o único modelo do trabalho que dá para ler**.
 
 ### Visualizando a árvore
 
 O notebook [01_construcao_dataset.ipynb](../../../notebooks/01_construcao_dataset.ipynb)
-contém uma célula que desenha os primeiros níveis da árvore com `plot_tree`,
-salvando em `reports/figures/nb01_dt_arvore.png`. É material útil para o
-relatório: mostra, em regras legíveis, o que o modelo aprendeu.
+desenha os primeiros níveis com `plot_tree`, salvando em
+`reports/figures/nb01_dt_arvore.png`. Com a abordagem derivada, os cortes do
+topo devem ser sobre `linhas_2x` / `linhas_2o` — vale conferir, porque é a
+confirmação visual de tudo que está nesta seção.

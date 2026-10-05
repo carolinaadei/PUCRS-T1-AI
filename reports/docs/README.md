@@ -30,33 +30,44 @@ parâmetros testados e justificados, resultados e análise.
 
 ---
 
-## Estado das medições
+## Resultado
 
-Nem tudo foi executado sob o protocolo unificado. O que está medido e o que
-falta:
+**Melhor configuração: XGBoost com abordagem derivada — 89,0% de acurácia no
+conjunto de teste** (F1 weighted 0,880). É o modelo servido pelo front end.
 
-| Algoritmo | Situação |
-|---|---|
-| MLP | medido na abordagem `bruta` (0,81 no teste) |
-| k-NN | medido sob protocolo antigo (0,5488); reexecutar |
-| SVM | medido sob protocolo antigo (~0,65); reexecutar |
-| XGBoost | número inválido (objetivo binário em problema de 5 classes); reexecutar |
-| Árvore de Decisão | nunca executado como script |
+| Algoritmo | Melhor abordagem | Acur. teste | F1 |
+|---|---|---:|---:|
+| XGBoost | derivada | **89,0%** | 0,880 |
+| SVM | bruta | 86,6% | 0,866 |
+| Árvore de Decisão | derivada | 86,0% | 0,849 |
+| MLP | derivada | 83,5% | 0,825 |
+| k-NN | derivada | 78,0% | 0,782 |
 
-Para preencher tudo de uma vez:
+**A abordagem derivada venceu as duas perguntas do item 3:** mais adequada
+(84,5% contra 77,8% de acurácia média) e menos custosa (48% menos tempo de
+treino). Tabela completa em [04-resultados.md](04-resultados.md).
 
-```bash
-pip install -r requirements.txt
-python models/comparar.py
-```
+### Os dois achados principais
 
-As tabelas marcadas como *pendente* nos documentos acima devem então ser
-preenchidas com os valores de [../metrics/comparacao_final.csv](../metrics/).
+**A representação importou mais que o algoritmo.** Trocar a entrada moveu a
+árvore de decisão de 54,9% para 86,0% — 31 pontos. Trocar de algoritmo, mantida
+a representação, move no máximo 11.
+
+**A abordagem derivada não enxerga empates.** Nenhuma das 15 features codifica
+"três em linha", então o melhor modelo erra todos os 4 empates do teste, e os 9
+que apareceram em 100 partidas no front end. Ver
+[04-resultados.md §4.5](04-resultados.md).
 
 ---
 
-## Figuras
+## Pendência
 
-Todas as figuras ficam em [../figures/](../figures/). As geradas pelos scripts
-seguem o padrão `<algoritmo>_<abordagem>_confusao.png`; as geradas pelos
-notebooks têm o prefixo `nb01_`.
+O `resultados.csv` da execução que gerou estes números **não está commitado** —
+[../metrics/](../metrics/) só tem o CSV antigo do SVM, e [../figures/](../figures/)
+não tem as matrizes de confusão novas. Ao rodar novamente, versione as duas
+pastas para que os números tenham evidência rastreável:
+
+```bash
+python models/comparar.py
+git add reports/metrics reports/figures
+```

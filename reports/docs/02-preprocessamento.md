@@ -154,4 +154,19 @@ duas grandezas:
   (164 tabuleiros). É o custo que aparece no front end, onde a predição acontece
   a cada jogada.
 
-> **Resultados:** ver [04-resultados.md](04-resultados.md).
+### Resposta medida
+
+| | `bruta` | `derivada` | |
+|---|---:|---:|---|
+| Acurácia média no teste | 77,8% | **84,5%** | +6,7 pontos |
+| Tempo de treino médio | 0,075 s | **0,039 s** | −48% |
+| Tempo de predição (164 tabuleiros) | 5,83 ms | **3,68 ms** | −37% |
+
+**A abordagem derivada é, ao mesmo tempo, a mais adequada e a menos custosa** —
+as duas perguntas do item 3 têm a mesma resposta.
+
+Mas ela tem um ponto cego: **nenhuma das 15 features codifica "três em linha"**,
+e por isso o melhor modelo erra todos os empates. A análise completa, com as
+matrizes de confusão, está em [04-resultados.md §4.5](04-resultados.md).
+
+> **Resultados completos:** [04-resultados.md](04-resultados.md).

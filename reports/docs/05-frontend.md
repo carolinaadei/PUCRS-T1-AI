@@ -143,24 +143,64 @@ contra os dados: as regras do jogo reproduzem 816 de 816 rótulos dos CSVs.
 > contabilizados e registrados no relatório.
 
 A tela contabiliza ao vivo e acumula ao longo da sessão, atravessando várias
-partidas — o contador não zera ao reiniciar a partida, só o histórico visual.
+partidas. O contador não zera ao reiniciar a partida; só o histórico visual.
 
-**Como coletar para o relatório:** jogue algumas partidas completas e registre o
-percentual final junto com o número de predições. Uma nota importante para a
-análise:
+### Resultado medido
 
-> A acurácia observada no front end **não** deve bater exatamente com a acurácia
-> de teste do modelo. São distribuições diferentes. O conjunto de teste é
-> balanceado (40 amostras por classe, exceto Empate), enquanto uma partida real
-> passa a maior parte do tempo em "Tem jogo" e "Possibilidade de Fim de Jogo", e
-> visita "Empate" ou uma vitória uma única vez, no fim. Como "Possibilidade de
-> Fim de Jogo" é a classe mais difícil e a mais frequente numa partida real, é
-> esperado que a acurácia na interação fique **abaixo** da acurácia de teste.
+100 partidas completas pela API do front end (`/api/classify`), com jogadas
+aleatórias dos dois lados, servindo o modelo **XGBoost · derivada**:
 
-Essa observação é boa matéria para a conclusão do relatório: mostra que a
-métrica de teste, sozinha, não descreve o desempenho em uso.
+| | |
+|---|---|
+| Acurácia na interação | **87,9%** |
+| Predições corretas | 667 de 759 |
+| Acurácia no conjunto de teste | 89,0% |
 
----
+**Acerto por estado real**
+
+| Estado real | Predições | Acerto |
+|---|---:|---:|
+| O vence | 35 | 100% |
+| Tem jogo | 285 | 98% |
+| X vence | 56 | 96% |
+| Possibilidade de Fim de Jogo | 374 | 80% |
+| **Empate** | **9** | **0%** |
+
+### Análise
+
+**A acurácia na interação (87,9%) ficou perto da de teste (89,0%), mas pelas
+razões erradas** — e é isso que torna essa medição interessante para o
+relatório.
+
+As duas distribuições são **muito diferentes**:
+
+| Classe | No conjunto de teste | Numa partida real |
+|---|---:|---:|
+| Possibilidade de Fim de Jogo | 24,4% | **49,3%** |
+| Tem jogo | 24,4% | 37,5% |
+| Empate | 2,4% | 1,2% |
+
+O conjunto de teste é balanceado por construção (40 amostras por classe, exceto
+Empate). Uma partida real passa metade do tempo em "Possibilidade de Fim de
+Jogo", visita "Tem jogo" no começo, e toca um estado terminal **uma única vez**,
+no fim.
+
+Como "Possibilidade" é a classe mais difícil (80% de acerto) **e** a mais
+frequente numa partida, era de esperar que a acurácia na interação caísse bem
+abaixo da de teste. Ela não caiu porque "Tem jogo" (98%) é a segunda mais
+frequente e compensa.
+
+**Os 0% em Empate confirmam o ponto cego da abordagem derivada.** Das 759
+predições, 9 eram empates e o modelo errou todas — exatamente o comportamento
+descrito em [04-resultados.md §4.5](04-resultados.md): nenhuma das 15 features
+derivadas codifica "três em linha", então um tabuleiro cheio sem vencedor fica
+indistinguível de uma vitória de X.
+
+> **Conclusão para o relatório:** a métrica de teste, sozinha, não descreve o
+> desempenho em uso. Um modelo com 89% no teste erra 100% dos empates em
+> partidas reais — e só não parece pior porque empates são raros. Se o critério
+> de escolha tivesse incluído a distribuição real de uso, a abordagem `bruta`
+> (que acerta os 4 empates do teste) seria a escolha mais defensável.
 
 ## 5.6 Endpoints
 

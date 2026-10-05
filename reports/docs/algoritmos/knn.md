@@ -65,68 +65,60 @@ São 8 × 2 × 2 = **32 combinações**, cada uma pontuada no conjunto de valida
 
 ## 4. Resultados
 
-### Execução exploratória (notebook)
+| Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `bruta` | 72,4% | 78,0% | 0,776 | 0,780 | 0,771 | 0,0072 | 6,05 |
+| `derivada` | 76,1% | **78,0%** | 0,797 | 0,780 | **0,782** | 0,0086 | 5,11 |
 
-Registrada em
-[notebooks/02_knn_exploratorio.ipynb](../../../notebooks/02_knn_exploratorio.ipynb),
-com `StandardScaler` sobre os códigos brutos e escolha de `k` por laço manual
-sobre a validação:
+**Melhores hiperparâmetros**
 
-| | |
+| Abordagem | Configuração |
 |---|---|
-| Melhor `k` | 19 |
-| Acurácia na validação | 0,5890 |
-| **Acurácia no teste** | **0,5488** |
-
-Por classe, no conjunto de teste:
-
-| Classe | Precision | Recall | F1 | Suporte |
-|---|---:|---:|---:|---:|
-| Empate | 0,00 | 0,00 | 0,00 | 4 |
-| O vence | 0,46 | 0,65 | 0,54 | 40 |
-| Possibilidade de Fim de Jogo | 0,44 | 0,35 | 0,39 | 40 |
-| Tem jogo | 0,68 | 0,65 | 0,67 | 40 |
-| X vence | 0,65 | 0,60 | 0,62 | 40 |
-| **Média weighted** | **0,54** | **0,55** | **0,54** | 164 |
+| `bruta` | `k=9` · euclidean · distance |
+| `derivada` | `k=5` · euclidean · distance |
 
 ### Análise
 
-**O resultado foi fraco, e o motivo é estrutural.** Uma acurácia de 55% num
-problema de 5 classes é bem acima do acaso (20%), mas é o pior desempenho entre
-os algoritmos do trabalho.
+**O k-NN é o pior dos cinco algoritmos** (78,0%, contra 89,0% do XGBoost), e é o
+**único que não melhora com a abordagem derivada** — a acurácia fica idêntica
+nas duas. O F1 sobe de leve (0,771 → 0,782), o que indica que ele distribui os
+erros um pouco melhor entre as classes, mas não acerta mais.
 
-**Empate com F1 = 0,00 é o achado mais revelador:** o modelo **nunca** prediz
-essa classe. Com `k = 19` e apenas 9 amostras de empate no treino, é
-aritmeticamente impossível que Empate vença uma votação — mesmo que todos os 9
-empates estivessem entre os 19 vizinhos mais próximos, ainda seriam minoria.
-Isso não é azar de amostragem: é consequência direta de escolher um `k` maior
-que o tamanho da classe minoritária.
+Isso é coerente com a natureza do algoritmo. As features derivadas ajudam quem
+consegue construir uma *fronteira* a partir delas. O k-NN não constrói fronteira
+nenhuma: ele compara distâncias. Se dois tabuleiros de classes diferentes ficam
+próximos no espaço de features — e ficam, porque uma única casa muda a classe —
+nenhuma escolha de representação resolve.
 
-**"Possibilidade de Fim de Jogo" também vai mal (F1 = 0,39)**, e pelo motivo
-descrito em [01-dataset.md](../01-dataset.md): essa classe é definida por uma
-condição de contagem (existe linha com duas marcas e a terceira vazia), não por
-semelhança visual entre tabuleiros. Dois tabuleiros podem ser vizinhos muito
-próximos em distância euclidiana e pertencer a classes diferentes, porque uma
-única casa muda a resposta. O k-NN, que decide por proximidade, não tem como
-capturar isso na abordagem bruta.
+**O `weights='distance'` venceu nas duas abordagens**, o que faz sentido: dar
+mais peso ao vizinho mais próximo é a única defesa do k-NN contra vizinhanças
+mistas.
 
-**As classes que ele acerta são as visualmente distintivas:** "Tem jogo"
-(F1 = 0,67) e "X vence" (F1 = 0,62), que têm padrões de ocupação mais
-característicos.
+**O `k` caiu de 9 para 5 na derivada.** Vizinhanças menores funcionam melhor
+quando as features já separam as classes, porque não é preciso "votar" sobre uma
+região grande para filtrar ruído.
 
-### Overfitting?
+### Comparação com a execução exploratória
 
-Não há overfitting: a acurácia de validação (0,589) e a de teste (0,549) são
-próximas, e ambas são baixas. O problema aqui é o oposto — **underfitting**. O
-modelo é simples demais para a estrutura do problema.
+O notebook [02_knn_exploratorio.ipynb](../../../notebooks/02_knn_exploratorio.ipynb)
+registrou um resultado bem pior, e a diferença é instrutiva:
 
-### O que a abordagem derivada deve mudar
+| | Notebook | Script atual (`bruta`) |
+|---|---|---|
+| Pré-processamento | `StandardScaler` sobre os códigos 0/1/2 | one-hot (27 colunas) |
+| Escolha do `k` | laço manual sobre a validação | `GridSearchCV` com `PredefinedSplit` |
+| `k` escolhido | 19 | 9 |
+| Acurácia no teste | 0,5488 | **0,7800** |
 
-A hipótese é que a abordagem `derivada` ajude bastante o k-NN, porque entrega
-`linhas_2x` e `linhas_2o` prontas: dois tabuleiros com a mesma contagem de
-ameaças passam a ficar próximos no espaço de features, o que é exatamente o que
-a distância precisa para funcionar aqui. Rodar `python models/knn.py` mede isso.
+**Mais 23 pontos**, com o mesmo algoritmo e os mesmos dados. Duas causas:
 
-> Os números acima vêm da execução exploratória, sob o protocolo antigo. Os
-> números comparáveis com os demais algoritmos, sob o protocolo unificado, saem
-> de `python models/comparar.py` — ver [04-resultados.md](../04-resultados.md).
+1. **O one-hot.** Tratar `0`, `1` e `2` como escala numérica fazia a distância
+   euclidiana calcular coisas sem sentido ("X está a 2 unidades de vazio"). Com
+   one-hot, a distância passa a contar *quantas casas diferem*, que é a noção
+   correta de semelhança entre tabuleiros.
+2. **O `k` menor.** Com `k=19` e apenas 9 empates no treino, era
+   aritmeticamente impossível a classe Empate vencer uma votação — o modelo
+   **nunca** a predizia (F1 = 0,00). Com `k=9`, ela passa a ser alcançável.
+
+> Esse contraste é bom material para o relatório: mostra que *pré-processamento
+> errado custa mais que algoritmo ruim*.

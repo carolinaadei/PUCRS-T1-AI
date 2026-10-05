@@ -140,11 +140,26 @@ mesma forma, e que a comparação do item 5 signifique alguma coisa.
    O teste é tocado uma única vez.
    → [03-metodologia.md](reports/docs/03-metodologia.md)
 
-5. **A classe difícil é sempre a mesma.** "Possibilidade de Fim de Jogo" tem o
-   pior F1 em todos os algoritmos medidos. É a única classe definida por uma
-   contagem em vez de uma posição, e a com menor cobertura no dataset (5,2% dos
-   estados que existem no jogo).
+5. **A representação importou mais que o algoritmo.** Entregar as features
+   prontas moveu a árvore de decisão de 54,9% para 86,0% — 31 pontos. Trocar de
+   algoritmo, mantida a representação, move no máximo 11. A abordagem derivada
+   venceu as duas perguntas do item 3: mais adequada e menos custosa.
    → [04-resultados.md](reports/docs/04-resultados.md)
+
+6. **Toda feature esconde algo.** A abordagem derivada ganhou na média, mas
+   nenhuma das suas 15 colunas codifica "três em linha" — e por isso o melhor
+   modelo erra **todos** os empates. A bruta acerta os empates, mas confunde
+   "Possibilidade" com "Tem jogo" 17 vezes.
+   → [04-resultados.md §4.5](reports/docs/04-resultados.md)
+
+---
+
+## Resultado
+
+**XGBoost com abordagem derivada: 89,0% de acurácia no conjunto de teste**
+(F1 weighted 0,880), e 87,9% durante 100 partidas no front end. Tabela completa
+dos cinco algoritmos nas duas abordagens em
+[04-resultados.md](reports/docs/04-resultados.md).
 
 ---
 
@@ -164,6 +179,7 @@ mesma forma, e que a comparação do item 5 signifique alguma coisa.
 | Front end | redesign da interface e simplificação do JavaScript |
 | Documentação | redação dos documentos em [reports/docs/](reports/docs/) |
 | Análise do dataset | enumeração do espaço de estados do jogo ([01-dataset.md](reports/docs/01-dataset.md) §1.4) |
+| Slides | montagem visual da apresentação |
 
 O código original dos algoritmos (MLP, SVM, XGBoost) e os notebooks foram
 escritos pelo grupo; a ferramenta foi usada para reorganizá-los, unificar o
@@ -176,6 +192,6 @@ protocolo experimental e documentar.
 | Limitação | Situação |
 |---|---|
 | "Empate" com 16 amostras | inerente ao problema; ver [01-dataset.md](reports/docs/01-dataset.md) §1.4 |
-| Nem todos os algoritmos rodaram sob o protocolo unificado | rodar `python models/comparar.py`; ver [reports/docs/README.md](reports/docs/README.md) |
-| Números de SVM e XGBoost nos docs são de execuções antigas | marcados nos respectivos documentos |
+| A abordagem derivada erra todos os empates | falta uma feature de "três em linha"; ver [04-resultados.md §4.5](reports/docs/04-resultados.md) |
+| `resultados.csv` da execução final não está commitado | rodar `python models/comparar.py` e versionar `reports/metrics/` e `reports/figures/` |
 | Acurácia no front end não bate com a do teste | esperado, e explicado em [05-frontend.md](reports/docs/05-frontend.md) §5.5 |
