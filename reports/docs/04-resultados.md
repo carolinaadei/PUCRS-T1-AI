@@ -182,11 +182,31 @@ amostra de acurácia, revelam comportamentos bem diferentes.
 
 O motivo é uma lacuna no conjunto de features: **nenhuma das 15 colunas diz se
 existe três em linha.** Elas contam marcas, contam ameaças e dizem de quem é a
-vez — mas não codificam vitória. Para o modelo, um tabuleiro cheio sem vencedor
-(empate) e um tabuleiro cheio com X vencendo têm features quase idênticas:
-`qtd_x=5`, `qtd_o=4`, `casas_vazias=0`, `linhas_2x=0`, `linhas_2o=0`, todas as
-casas ocupadas. Como "X vence" tem 200 amostras e "Empate" tem 16, o modelo
-aposta sempre na classe majoritária — e acerta 98% das vezes.
+vez — mas não codificam vitória.
+
+E o problema é mais forte do que "features parecidas": num tabuleiro cheio as 15
+features são **matematicamente idênticas**, sempre. Todo tabuleiro cheio tem
+5 X e 4 O (X abre), nenhuma casa vazia, e sem casa vazia não pode haver
+"duas marcas + uma vazia", então `linhas_2x` e `linhas_2o` são zero. A máscara
+de ocupação é toda 1. Não sobra nada que possa variar:
+
+```
+qtd_x=5  qtd_o=4  casas_vazias=0  linhas_2x=0  linhas_2o=0  jogador_da_vez=1
+ocupada_0..8 = 1 1 1 1 1 1 1 1 1
+```
+
+Os 36 tabuleiros cheios do dataset — 16 empates e 20 vitórias de X — **colapsam
+num único ponto** do espaço de features:
+
+```python
+cheios = df[(df[FEATURE_COLS] != 0).sum(axis=1) == 9]
+len(cheios)                              # -> 36  (16 Empate + 20 X vence)
+len(np.unique(extrair_features(cheios[FEATURE_COLS]), axis=0))   # -> 1
+```
+
+Nesse ponto, **nenhum classificador pode fazer melhor que chutar a maioria.**
+Não é limitação do XGBoost: qualquer modelo, com qualquer ajuste, erraria os 16
+empates. Como X vence é maioria (20 contra 16), é isso que todos predizem.
 
 **A bruta acerta os 4 empates**, porque o one-hot das 9 casas preserva a
 informação de *quais* marcas estão onde, que é o necessário para ver três em
