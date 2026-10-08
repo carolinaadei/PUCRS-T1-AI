@@ -24,9 +24,32 @@ scripts, notebooks e front end.
 
 ## Como rodar
 
-```bash
+**1. Criar e ativar o ambiente virtual.** O comando de ativação muda conforme o
+terminal:
+
+```powershell
+# PowerShell (terminal padrão do VS Code no Windows)
 python -m venv .venv
-.venv\Scripts\activate            # Windows
+.venv\Scripts\Activate.ps1
+```
+
+```bash
+# Git Bash / WSL / macOS / Linux
+python -m venv .venv
+source .venv/Scripts/activate     # no macOS e Linux: source .venv/bin/activate
+```
+
+> No Git Bash, `.venv\Scripts\activate` **não funciona**: o bash trata a
+> contrabarra como escape e o caminho vira `.venvScriptsactivate`. Use barras
+> normais e o `source`.
+>
+> No PowerShell, se aparecer *"execução de scripts foi desabilitada neste
+> sistema"*, libere para o seu usuário:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+**2. Instalar e rodar:**
+
+```bash
 pip install -r requirements.txt
 
 python models/comparar.py         # treina os 5 algoritmos e gera a comparação
