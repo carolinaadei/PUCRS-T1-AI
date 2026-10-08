@@ -67,58 +67,81 @@ São 8 × 2 × 2 = **32 combinações**, cada uma pontuada no conjunto de valida
 
 | Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `bruta` | 72,4% | 78,0% | 0,776 | 0,780 | 0,771 | 0,0072 | 6,05 |
-| `derivada` | 76,1% | **78,0%** | 0,797 | 0,780 | **0,782** | 0,0086 | 5,11 |
+| `bruta` | 72,4% | 75,0% | 0,737 | 0,750 | 0,737 | 0,0254 | 41,18 |
+| `derivada` | 76,7% | **79,9%** | 0,820 | 0,799 | **0,800** | 0,0066 | 4,19 |
 
 **Melhores hiperparâmetros**
 
 | Abordagem | Configuração |
 |---|---|
 | `bruta` | `k=9` · euclidean · distance |
-| `derivada` | `k=5` · euclidean · distance |
+| `derivada` | `k=5` · manhattan · uniform |
 
 ### Análise
 
-**O k-NN é o pior dos cinco algoritmos** (78,0%, contra 89,0% do XGBoost), e é o
-**único que não melhora com a abordagem derivada** — a acurácia fica idêntica
-nas duas. O F1 sobe de leve (0,771 → 0,782), o que indica que ele distribui os
-erros um pouco melhor entre as classes, mas não acerta mais.
+**O k-NN é o pior dos cinco algoritmos** (79,9%, contra 89,0% do XGBoost), mas
+melhora bem com a abordagem derivada: **+4,9 pontos** de acurácia e +0,063 de
+F1.
 
-Isso é coerente com a natureza do algoritmo. As features derivadas ajudam quem
-consegue construir uma *fronteira* a partir delas. O k-NN não constrói fronteira
-nenhuma: ele compara distâncias. Se dois tabuleiros de classes diferentes ficam
-próximos no espaço de features — e ficam, porque uma única casa muda a classe —
-nenhuma escolha de representação resolve.
-
-**O `weights='distance'` venceu nas duas abordagens**, o que faz sentido: dar
-mais peso ao vizinho mais próximo é a única defesa do k-NN contra vizinhanças
-mistas.
+O ganho vem quase todo da classe difícil: o F1 de "Possibilidade de Fim de
+Jogo" salta de **0,51 para 0,78**. Faz sentido — com `linhas_2x` e `linhas_2o`
+explícitas, dois tabuleiros com o mesmo número de ameaças passam a ficar
+próximos no espaço de features, que é exatamente o que a distância precisa para
+funcionar. Na abordagem bruta eles podiam estar longe um do outro, porque o
+one-hot mede diferença de *casas*, não de *ameaças*.
 
 **O `k` caiu de 9 para 5 na derivada.** Vizinhanças menores funcionam melhor
-quando as features já separam as classes, porque não é preciso "votar" sobre uma
-região grande para filtrar ruído.
+quando as features já separam as classes: não é preciso votar sobre uma região
+grande para filtrar ruído.
+
+**A métrica mudou de euclidean para manhattan.** Em features de contagem, a
+distância de Manhattan soma as diferenças absolutas — "este tabuleiro tem 2
+ameaças a mais e 1 casa vazia a menos" — que é uma noção de semelhança mais
+natural aqui do que a euclidiana.
+
+### O custo de predição: o pior do trabalho
+
+**41,18 ms na abordagem bruta** — 17× o segundo colocado, e o único valor do
+trabalho que chega a ser perceptível.
+
+A causa é estrutural. O k-NN não tem modelo: ele guarda as 652 amostras de
+treino e, para cada predição, calcula a distância até todas elas. Com
+`weights='distance'`, ainda pondera o resultado. Nas 27 colunas do one-hot isso
+são 652 × 27 operações por tabuleiro.
+
+Na derivada cai para 4,19 ms, porque são 15 colunas e `weights='uniform'`.
+
+> É o oposto dos demais algoritmos: o k-NN treina em 0,0254 s (quase nada, ele
+> só memoriza) e paga tudo na predição. Para o front end, que classifica a cada
+> jogada, essa é a métrica que importa.
+
+### Overfitting?
+
+Não há. A acurácia de teste é superior à de validação nas duas abordagens
+(72,4% → 75,0% e 76,7% → 79,9%). O problema do k-NN aqui é o oposto:
+**underfitting** — ele é simples demais para a estrutura do problema.
 
 ### Comparação com a execução exploratória
 
 O notebook [02_knn_exploratorio.ipynb](../../../notebooks/02_knn_exploratorio.ipynb)
 registrou um resultado bem pior, e a diferença é instrutiva:
 
-| | Notebook | Script atual (`bruta`) |
+| | Notebook | Script atual (`derivada`) |
 |---|---|---|
-| Pré-processamento | `StandardScaler` sobre os códigos 0/1/2 | one-hot (27 colunas) |
+| Pré-processamento | `StandardScaler` sobre os códigos 0/1/2 | features derivadas, padronizadas |
 | Escolha do `k` | laço manual sobre a validação | `GridSearchCV` com `PredefinedSplit` |
-| `k` escolhido | 19 | 9 |
-| Acurácia no teste | 0,5488 | **0,7800** |
+| `k` escolhido | 19 | 5 |
+| Acurácia no teste | 0,5488 | **0,7988** |
 
-**Mais 23 pontos**, com o mesmo algoritmo e os mesmos dados. Duas causas:
+**Mais 25 pontos**, com o mesmo algoritmo e os mesmos dados. Duas causas:
 
-1. **O one-hot.** Tratar `0`, `1` e `2` como escala numérica fazia a distância
-   euclidiana calcular coisas sem sentido ("X está a 2 unidades de vazio"). Com
-   one-hot, a distância passa a contar *quantas casas diferem*, que é a noção
-   correta de semelhança entre tabuleiros.
+1. **A representação.** Tratar `0`, `1` e `2` como escala numérica fazia a
+   distância calcular coisas sem sentido ("X está a 2 unidades de vazio").
 2. **O `k` menor.** Com `k=19` e apenas 9 empates no treino, era
    aritmeticamente impossível a classe Empate vencer uma votação — o modelo
-   **nunca** a predizia (F1 = 0,00). Com `k=9`, ela passa a ser alcançável.
+   **nunca** a predizia (F1 = 0,00).
 
 > Esse contraste é bom material para o relatório: mostra que *pré-processamento
 > errado custa mais que algoritmo ruim*.
+
+> Comparação com os demais algoritmos: [04-resultados.md](../04-resultados.md).

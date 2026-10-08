@@ -7,11 +7,12 @@
 **Dados:** [reports/metrics/](../metrics/) ·
 **Figuras:** [reports/figures/](../figures/)
 
-> **Procedência dos números.** As tabelas abaixo são da execução completa de
-> `python models/comparar.py` que gerou os slides da apresentação. O
-> `resultados.csv` daquela execução ainda não foi commitado — ao rodar
-> novamente, versione [reports/metrics/](../metrics/) para que os números
-> tenham evidência rastreável no repositório.
+> **Procedência dos números.** Tudo abaixo vem de uma execução verificada de
+> `python models/comparar.py`, com os dados em
+> [reports/metrics/comparacao_final.csv](../metrics/comparacao_final.csv) e as
+> matrizes de confusão em [reports/figures/](../figures/). Os resultados são
+> determinísticos (`random_state=42`): rodar de novo reproduz os mesmos valores.
+> Os tempos variam conforme a máquina.
 
 ---
 
@@ -34,22 +35,22 @@ Ordenada por acurácia no conjunto de teste.
 
 | Algoritmo | Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| **XGBoost** | **derivada** | 85,9% | **89,0%** | 0,880 | 0,890 | 0,880 | 0,0708 | 4,29 |
-| XGBoost | bruta | 87,1% | 88,4% | 0,883 | 0,884 | 0,883 | 0,1167 | 6,08 |
-| SVM | bruta | 79,1% | 86,6% | 0,867 | 0,866 | 0,866 | 0,0439 | 9,46 |
-| Árvore de Decisão | derivada | 83,4% | 86,0% | 0,845 | 0,860 | 0,849 | 0,0095 | 2,02 |
-| SVM | derivada | 82,8% | 86,0% | 0,842 | 0,860 | 0,849 | 0,0142 | 3,99 |
-| MLP | derivada | 82,2% | 83,5% | 0,815 | 0,835 | 0,825 | 0,0932 | 2,97 |
-| MLP | bruta | 74,9% | 81,1% | 0,811 | 0,811 | 0,810 | 0,1989 | 4,54 |
-| k-NN | bruta | 72,4% | 78,0% | 0,776 | 0,780 | 0,771 | 0,0072 | 6,05 |
-| k-NN | derivada | 76,1% | 78,0% | 0,797 | 0,780 | 0,782 | 0,0086 | 5,11 |
-| Árvore de Decisão | bruta | 57,1% | 54,9% | 0,550 | 0,549 | 0,549 | 0,0084 | 3,01 |
+| **XGBoost** | **derivada** | 85,9% | **89,0%** | 0,880 | 0,890 | 0,880 | 0,0799 | 2,62 |
+| XGBoost | bruta | 87,1% | 88,4% | 0,883 | 0,884 | 0,883 | 0,1160 | 4,84 |
+| SVM | bruta | 79,1% | 86,6% | 0,867 | 0,866 | 0,866 | 0,0224 | 7,78 |
+| Árvore de Decisão | derivada | 83,4% | 86,0% | 0,845 | 0,860 | 0,849 | 0,0048 | 0,94 |
+| SVM | derivada | 82,8% | 86,0% | 0,842 | 0,860 | 0,849 | 0,0084 | 2,25 |
+| MLP | derivada | 82,2% | 83,5% | 0,815 | 0,835 | 0,825 | 0,0518 | 2,33 |
+| MLP | bruta | 74,8% | 81,1% | 0,811 | 0,811 | 0,810 | 0,1213 | 2,17 |
+| k-NN | derivada | 76,7% | 79,9% | 0,820 | 0,799 | 0,800 | 0,0066 | 4,19 |
+| k-NN | bruta | 72,4% | 75,0% | 0,737 | 0,750 | 0,737 | 0,0254 | 41,18 |
+| Árvore de Decisão | bruta | 57,1% | 54,9% | 0,550 | 0,549 | 0,549 | 0,0055 | 1,93 |
 
 ### Melhores hiperparâmetros
 
 | Algoritmo | `bruta` | `derivada` |
 |---|---|---|
-| k-NN | k=9 · euclidean · distance | k=5 · euclidean · distance |
+| k-NN | k=9 · euclidean · distance | k=5 · manhattan · uniform |
 | Árvore de Decisão | gini · depth 10 · leaf 1 | entropy · depth 7 · leaf 1 |
 | MLP | (50, 25) · relu · lr 0,01 | (50, 25) · tanh · lr 0,01 |
 | SVM | rbf · C=10 · gamma scale | linear · C=0,1 |
@@ -64,7 +65,7 @@ Ordenada por acurácia no conjunto de teste.
 | Acurácia no teste | **89,0%** |
 | F1 weighted | 0,880 |
 | Validação → teste | 85,9% → 89,0% |
-| Custo | treino 0,0708 s · predição 4,29 ms |
+| Custo | treino 0,0799 s · predição 2,62 ms |
 | Hiperparâmetros | `learning_rate=0.05`, `max_depth=3`, `n_estimators=100` |
 
 **Justificativa:**
@@ -76,7 +77,7 @@ Ordenada por acurácia no conjunto de teste.
    *conservadora* da grade, não a mais expressiva. Isso é o comportamento
    clássico de boosting bem ajustado, e reforça que o resultado não vem de
    capacidade excessiva.
-4. **Custo baixo:** 4,29 ms para classificar os 164 tabuleiros de teste, o que é
+4. **Custo baixo:** 2,62 ms para classificar os 164 tabuleiros de teste, o que é
    irrelevante para o uso no front end.
 
 É o modelo servido pelo [front end](05-frontend.md).
@@ -92,9 +93,9 @@ Ordenada por acurácia no conjunto de teste.
 
 | | `bruta` | `derivada` | |
 |---|---:|---:|---|
-| Acurácia média no teste | 77,8% | **84,5%** | +6,7 pontos |
-| Tempo de treino médio | 0,075 s | **0,039 s** | −48% |
-| Tempo de predição (164 tabuleiros) | 5,83 ms | **3,68 ms** | −37% |
+| Acurácia média no teste | 77,2% | **84,9%** | +7,7 pontos |
+| Tempo de treino médio | 0,0581 s | **0,0303 s** | −48% |
+| Tempo de predição (164 tabuleiros) | 11,58 ms | **2,47 ms** | −79% |
 
 **A abordagem derivada venceu nas duas perguntas do enunciado: é mais adequada
 e menos custosa.** É um resultado limpo, porque normalmente há um compromisso
@@ -108,18 +109,21 @@ O F1 de "Possibilidade de Fim de Jogo", por algoritmo:
 
 | Algoritmo | `bruta` | `derivada` | Ganho |
 |---|---:|---:|---:|
-| k-NN | 0,59 | 0,76 | +0,17 |
+| k-NN | 0,51 | 0,78 | +0,27 |
 | Árvore de Decisão | 0,47 | 0,87 | **+0,40** |
 | MLP | 0,65 | 0,84 | +0,19 |
 | SVM | 0,78 | 0,89 | +0,11 |
-| XGBoost | 0,76 | 0,90 | +0,14 |
+| XGBoost | 0,76 | **0,90** | +0,14 |
 
 **A hipótese levantada em [02-preprocessamento.md](02-preprocessamento.md) se
-confirmou.** Aquela classe é definida pela condição "existe linha com duas
-marcas do mesmo jogador e a terceira casa vazia". Na abordagem bruta o modelo
-tem que reconstruir essa regra a partir das 27 colunas; na derivada ela chega
-pronta em `linhas_2x` e `linhas_2o`. Todos os cinco algoritmos melhoraram, sem
-exceção.
+confirmou, nos cinco algoritmos sem exceção.** Aquela classe é definida pela
+condição "existe linha com duas marcas do mesmo jogador e a terceira casa
+vazia". Na abordagem bruta o modelo tem que reconstruir essa regra a partir das
+27 colunas; na derivada ela chega pronta em `linhas_2x` e `linhas_2o`.
+
+Não é um ganho marginal: a classe sai de um F1 médio de 0,63 na bruta para 0,86
+na derivada. É ela que explica quase toda a diferença de acurácia entre as duas
+abordagens.
 
 ### O caso extremo: a Árvore de Decisão
 
@@ -142,8 +146,8 @@ com o SVM.
 
 > **Conclusão que vale para o relatório:** neste problema, **a representação
 > importou mais que a escolha do algoritmo**. Trocar a entrada moveu a árvore em
-> 31 pontos; trocar de algoritmo, mantida a representação, move no máximo 11
-> pontos (de 78,0% do k-NN a 89,0% do XGBoost, na derivada).
+> 31 pontos; trocar de algoritmo, mantida a representação, move no máximo 9
+> pontos (de 79,9% do k-NN a 89,0% do XGBoost, na derivada).
 
 ---
 
@@ -211,21 +215,24 @@ ganho na classe difícil. A função `vencedor` já existe em
 
 ## 4.6 Outras observações
 
-**O k-NN é o pior dos cinco (78,0%), e é o único que não melhora com a
-derivada** — a acurácia fica idêntica nas duas abordagens, embora o F1 suba
-levemente (0,771 → 0,782). Ver [algoritmos/knn.md](algoritmos/knn.md).
+**O k-NN é o pior dos cinco**, mesmo melhorando com a derivada (75,0% → 79,9%).
+Ele também tem o custo de predição mais alto de todos: **41,18 ms** na abordagem
+bruta, 17× o segundo colocado. A causa é a combinação de `weights='distance'`
+com as 27 colunas do one-hot — cada predição calcula a distância do tabuleiro
+novo até as 652 amostras guardadas. Ver [algoritmos/knn.md](algoritmos/knn.md).
 
 **O SVM foi o único a preferir a abordagem bruta** (86,6% contra 86,0%), e com
 uma inversão interessante de kernel: `rbf` na bruta, `linear` com `C=0,1` na
 derivada. Faz sentido — com as features já separando bem as classes, um
 hiperplano simples basta, e `C` baixo indica que a margem larga foi suficiente.
 
-**O MLP é o mais caro para treinar** (0,1989 s na bruta), quase 20× o custo da
-árvore, para um resultado 5 pontos pior que o XGBoost.
+**O MLP é o mais caro para treinar** (0,1213 s na bruta), 22× o custo da árvore,
+para um resultado 5 pontos pior que o XGBoost.
 
-**A árvore é a mais barata de todas** (0,0095 s de treino, 2,02 ms de predição) e,
-com a abordagem derivada, chega a 86,0% — dentro de 3 pontos do vencedor. Se o
-critério incluísse custo e interpretabilidade, ela seria a escolha.
+**A árvore é a mais barata de todas** (0,0048 s de treino, 0,94 ms de predição) e,
+com a abordagem derivada, chega a 86,0% — dentro de 3 pontos do vencedor. É 17×
+mais rápida que o XGBoost para treinar e quase 3× para predizer. Se o critério
+incluísse custo e interpretabilidade, ela seria a escolha.
 
 ---
 

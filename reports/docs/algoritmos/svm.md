@@ -89,8 +89,8 @@ grade que se lê de forma direta.
 
 | Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `bruta` | 79,1% | **86,6%** | 0,867 | 0,866 | **0,866** | 0,0439 | 9,46 |
-| `derivada` | 82,8% | 86,0% | 0,842 | 0,860 | 0,849 | 0,0142 | 3,99 |
+| `bruta` | 79,1% | **86,6%** | 0,867 | 0,866 | **0,866** | 0,0224 | 7,78 |
+| `derivada` | 82,8% | 86,0% | 0,842 | 0,860 | 0,849 | 0,0084 | 2,25 |
 
 **Melhores hiperparâmetros**
 
@@ -130,13 +130,13 @@ A troca de kernel também derruba o custo:
 
 | | `bruta` | `derivada` |
 |---|---:|---:|
-| Treino | 0,0439 s | **0,0142 s** (−68%) |
-| Predição | 9,46 ms | **3,99 ms** (−58%) |
+| Treino | 0,0224 s | **0,0084 s** (−63%) |
+| Predição | 7,78 ms | **2,25 ms** (−71%) |
 
-**O SVM na abordagem bruta tem a predição mais lenta de todas as dez
-configurações (9,46 ms)**, o que é esperado: o kernel RBF exige calcular a
-distância do ponto novo a cada vetor de suporte. Um kernel linear é apenas um
-produto escalar.
+**A predição com kernel RBF é 3,5× mais lenta** que com o linear, o que é
+esperado: o RBF exige calcular a distância do ponto novo a cada vetor de
+suporte, enquanto o linear é apenas um produto escalar. Entre as dez
+configurações, só o k-NN bruta (41,18 ms) é mais lento que o SVM bruta.
 
 ### A classe difícil
 

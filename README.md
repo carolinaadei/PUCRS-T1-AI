@@ -218,5 +218,4 @@ protocolo experimental e documentar.
 |---|---|
 | "Empate" com 16 amostras | inerente ao problema; ver [01-dataset.md](reports/docs/01-dataset.md) §1.4 |
 | A abordagem derivada erra todos os empates | falta uma feature de "três em linha"; ver [04-resultados.md §4.5](reports/docs/04-resultados.md) |
-| `resultados.csv` da execução final não está commitado | rodar `python models/comparar.py` e versionar `reports/metrics/` e `reports/figures/` |
 | Acurácia no front end não bate com a do teste | esperado, e explicado em [05-frontend.md](reports/docs/05-frontend.md) §5.5 |

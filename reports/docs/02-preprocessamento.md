@@ -158,9 +158,9 @@ duas grandezas:
 
 | | `bruta` | `derivada` | |
 |---|---:|---:|---|
-| Acurácia média no teste | 77,8% | **84,5%** | +6,7 pontos |
-| Tempo de treino médio | 0,075 s | **0,039 s** | −48% |
-| Tempo de predição (164 tabuleiros) | 5,83 ms | **3,68 ms** | −37% |
+| Acurácia média no teste | 77,2% | **84,9%** | +7,7 pontos |
+| Tempo de treino médio | 0,0581 s | **0,0303 s** | −48% |
+| Tempo de predição (164 tabuleiros) | 11,58 ms | **2,47 ms** | −79% |
 
 **A abordagem derivada é, ao mesmo tempo, a mais adequada e a menos custosa** —
 as duas perguntas do item 3 têm a mesma resposta.

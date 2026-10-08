@@ -115,8 +115,8 @@ São 4 × 2 × 2 = **16 combinações**.
 
 | Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `bruta` | 74,9% | 81,1% | 0,811 | 0,811 | 0,810 | 0,1989 | 4,54 |
-| `derivada` | 82,2% | **83,5%** | 0,815 | 0,835 | **0,825** | 0,0932 | 2,97 |
+| `bruta` | 74,8% | 81,1% | 0,811 | 0,811 | 0,810 | 0,1213 | 2,17 |
+| `derivada` | 82,2% | **83,5%** | 0,815 | 0,835 | **0,825** | 0,0518 | 2,33 |
 
 **Melhores hiperparâmetros**
 
@@ -153,10 +153,10 @@ entradas esparsas. Na derivada, o `StandardScaler` entrega valores centrados em
 zero e com sinal, que é exatamente o domínio onde a tanh (também centrada em
 zero, saturando em ±1) se sai melhor.
 
-**O MLP é o algoritmo mais caro para treinar: 0,1989 s na bruta**, quase 20× o
-custo da árvore, para um resultado 5 pontos pior que o XGBoost. A abordagem
-derivada corta esse custo pela metade (0,0932 s), porque a rede tem 15 entradas
-em vez de 27 — menos pesos na primeira camada.
+**O MLP é o algoritmo mais caro para treinar: 0,1213 s na bruta**, 22× o custo
+da árvore, para um resultado 5 pontos pior que o XGBoost. A abordagem derivada
+corta esse custo pela metade (0,0518 s), porque a rede tem 15 entradas em vez de
+27 — menos pesos na primeira camada.
 
 **Ganho moderado com a derivada (+2,4 pontos),** menor que o da árvore (+31) ou
 do MLP na classe difícil. Faz sentido: a rede já conseguia aproximar a regra de
@@ -166,7 +166,7 @@ transforma o resultado.
 ### Overfitting?
 
 Não há sinal nas duas abordagens. A acurácia de teste é **superior** à de
-validação em ambas (74,9% → 81,1% e 82,2% → 83,5%), o oposto do padrão de um
+validação em ambas (74,8% → 81,1% e 82,2% → 83,5%), o oposto do padrão de um
 modelo que decorou. O `early_stopping` atuou durante toda a busca.
 
 ### Contra as expectativas

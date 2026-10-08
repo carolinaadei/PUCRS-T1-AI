@@ -80,8 +80,8 @@ São 5 × 2 × 3 = **30 combinações**.
 
 | Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `bruta` | 57,1% | 54,9% | 0,550 | 0,549 | 0,549 | 0,0084 | 3,01 |
-| `derivada` | 83,4% | **86,0%** | 0,845 | 0,860 | **0,849** | 0,0095 | 2,02 |
+| `bruta` | 57,1% | 54,9% | 0,550 | 0,549 | 0,549 | 0,0055 | 1,93 |
+| `derivada` | 83,4% | **86,0%** | 0,845 | 0,860 | **0,849** | 0,0048 | 0,94 |
 
 **Melhores hiperparâmetros**
 
@@ -120,9 +120,9 @@ para decorar e não generalizou.
 
 ### Custo
 
-A árvore é **o algoritmo mais barato do trabalho**: 0,0095 s de treino e 2,02 ms
-de predição na derivada — 7× mais rápida que o XGBoost para treinar, e a mais
-rápida de todas para predizer.
+A árvore é **o algoritmo mais barato do trabalho**: 0,0048 s de treino e 0,94 ms
+de predição na derivada — 17× mais rápida que o XGBoost para treinar, e a única
+que prediz o conjunto de teste inteiro em menos de 1 ms.
 
 Isso torna a árvore + derivada a escolha mais interessante sob critérios que não
 sejam só acurácia: fica a 3 pontos do vencedor (86,0% contra 89,0%), custa uma

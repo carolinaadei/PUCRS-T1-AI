@@ -109,8 +109,8 @@ São 3 × 2 × 3 × 2 = **36 combinações**.
 
 | Abordagem | Acur. val. | Acur. teste | Precision | Recall | F1 | Treino (s) | Predição (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `bruta` | 87,1% | 88,4% | 0,883 | 0,884 | **0,883** | 0,1167 | 6,08 |
-| `derivada` | 85,9% | **89,0%** | 0,880 | 0,890 | 0,880 | 0,0708 | 4,29 |
+| `bruta` | 87,1% | 88,4% | 0,883 | 0,884 | **0,883** | 0,1160 | 4,84 |
+| `derivada` | 85,9% | **89,0%** | 0,880 | 0,890 | 0,880 | 0,0799 | 2,62 |
 
 **Melhores hiperparâmetros**
 
@@ -152,12 +152,12 @@ conservadores que a validação escolheu.
 
 | | `bruta` | `derivada` |
 |---|---:|---:|
-| Treino | 0,1167 s | **0,0708 s** (−39%) |
-| Predição | 6,08 ms | **4,29 ms** (−29%) |
+| Treino | 0,1160 s | **0,0799 s** (−31%) |
+| Predição | 4,84 ms | **2,62 ms** (−46%) |
 
 O XGBoost é o **segundo mais caro** para treinar, atrás do MLP — são 100 árvores
-por configuração, contra um único modelo nos demais. Ainda assim, 0,07 s é
-irrelevante na prática, e os 4,29 ms de predição não se notam no front end.
+por configuração, contra um único modelo nos demais. Ainda assim, 0,08 s é
+irrelevante na prática, e os 2,62 ms de predição não se notam no front end.
 
 ### O ponto cego da abordagem derivada
 
